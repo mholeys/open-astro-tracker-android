@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@+id/navigation_control">
+
+    <fragment
+        android:id="@+id/navigation_polar_align"
+        android:name="uk.co.mholeys.android.openastrotracker_control.ui.poi.PointsOfInterestFragment"
+        android:label="@string/title_polar_align"
+        tools:layout="@layout/fragment_poi" />
+
+    <fragment
+        android:id="@+id/navigation_control"
+        android:name="uk.co.mholeys.android.openastrotracker_control.ui.control.ControlFragment"
+        android:label="@string/title_control"
+        tools:layout="@layout/fragment_control" />
+
+    <fragment
+        android:id="@+id/navigation_connection"
+        android:name="uk.co.mholeys.android.openastrotracker_control.ui.connection.ConnectionFragment"
+        android:label="@string/title_connection"
+        tools:layout="@layout/fragment_connection" />
+</navigation>

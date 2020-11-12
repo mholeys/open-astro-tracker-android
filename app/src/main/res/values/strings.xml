@@ -1,0 +1,41 @@
+<resources>
+    <string name="app_name">OpenAstroTracker-Control</string>
+    <string name="title_control">Control</string>
+    <string name="title_polar_align">Polar Align</string>
+    <string name="title_connection">Connection</string>
+    <string name="declination_short">DEC</string>
+    <string name="control_title">Control</string>
+    <string name="control_up">Up</string>
+    <string name="control_left">Left</string>
+    <string name="control_right">Right</string>
+    <string name="control_down">Down</string>
+    <string name="control_home">Home</string>
+    <string name="control_set_home">Set Home</string>
+    <string name="control_ra_short">RA</string>
+    <string name="control_slew">Slew to</string>
+    <string name="polar_alignment">Polar alignment</string>
+    <string name="stop_tracking">Stop tracking</string>
+    <string name="start_tracking">Start tracking</string>
+    <string name="tracking_label">Tracking</string>
+
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="at_home_question">Is the mount at the home position?</string>
+    <string name="go_home">Go Home</string>
+    <string name="homing">Homing..</string>
+    <string name="wait_for_home_then_align">Wait till mount is at the home position before aligning</string>
+    <string name="move_mount_message">Move the mount so that Polaris is in the center of your camera frame, then press ok</string>
+    <string name="home_may_be_unset">Mount\'s home position may be unset, consider setting the home position</string>
+    <string name="moving_to_home_wait">Wait until mount is at home position!</string>
+    <string name="yes">Yes</string>
+
+    <string name="bluetooth_sdp_uuid">00001101-0000-1000-8000-00805F9B34FB</string>
+    <string name="bluetooth_uuid">9333ce44-2e18-4474-a7d1-bab7b8afd5a7</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string-array name="connection_types">
+        <item>WiFi</item>
+        <item>Bluetooth</item>
+        <item>USB/Serial</item>
+    </string-array>
+
+
+</resources>

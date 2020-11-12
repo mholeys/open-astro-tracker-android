@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <Button
+        android:id="@+id/move_up_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/control_up"
+        app:layout_constraintEnd_toStartOf="@+id/tracking_on_btn"
+        app:layout_constraintStart_toEndOf="@+id/tracking_off_btn"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/move_left_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="64dp"
+        android:text="@string/control_left"
+        app:layout_constraintEnd_toStartOf="@+id/move_right_btn"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/move_up_btn" />
+
+    <Button
+        android:id="@+id/move_right_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/control_right"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/move_left_btn"
+        app:layout_constraintTop_toTopOf="@+id/move_left_btn" />
+
+    <Button
+        android:id="@+id/move_down_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/control_down"
+        app:layout_constraintStart_toStartOf="@+id/move_up_btn"
+        app:layout_constraintTop_toBottomOf="@+id/move_left_btn" />
+
+    <View
+        android:id="@+id/view3"
+        style="@style/Divider"
+        android:layout_marginTop="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/move_down_btn" />
+
+    <Button
+        android:id="@+id/home_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="118dp"
+        android:text="@string/control_home"
+        app:layout_constraintEnd_toStartOf="@+id/set_home_btn"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/view3" />
+
+    <Button
+        android:id="@+id/set_home_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/control_set_home"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/home_btn"
+        app:layout_constraintTop_toTopOf="@+id/home_btn" />
+
+    <View
+        android:id="@+id/view4"
+        style="@style/Divider"
+        android:layout_marginTop="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/home_btn" />
+
+    <Button
+        android:id="@+id/slew_to_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/control_slew"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/current_ra_text"
+        app:layout_constraintTop_toTopOf="@+id/current_ra_text" />
+
+    <Button
+        android:id="@+id/polar_align_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="24dp"
+        android:text="@string/polar_alignment"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="@+id/slew_to_btn"
+        app:layout_constraintTop_toTopOf="@+id/current_dec_text" />
+
+    <Button
+        android:id="@+id/tracking_off_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/stop_tracking"
+        app:layout_constraintEnd_toStartOf="@+id/move_up_btn"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/tracking_on_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/start_tracking"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/move_up_btn"
+        app:layout_constraintTop_toTopOf="@+id/tracking_off_btn" />
+
+    <TextView
+        android:id="@+id/textView11"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:text="@string/tracking_label"
+        app:layout_constraintEnd_toStartOf="@+id/tracking_on_btn"
+        app:layout_constraintStart_toEndOf="@+id/tracking_off_btn"
+        app:layout_constraintTop_toTopOf="@+id/move_left_btn" />
+
+    <TextView
+        android:id="@+id/tracking_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Unknown"
+        app:layout_constraintEnd_toStartOf="@+id/tracking_on_btn"
+        app:layout_constraintStart_toEndOf="@+id/tracking_off_btn"
+        app:layout_constraintTop_toBottomOf="@+id/textView11" />
+
+    <TextView
+        android:id="@+id/current_ra_text_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="8dp"
+        android:text="Current RA"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/view4" />
+
+    <TextView
+        android:id="@+id/current_dec_text_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Current DEC"
+        app:layout_constraintStart_toStartOf="@+id/current_ra_text_label"
+        app:layout_constraintTop_toBottomOf="@+id/current_ra_text" />
+
+    <TextView
+        android:id="@+id/current_ra_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="00 : 00 : 00"
+        android:textSize="36sp"
+        app:layout_constraintStart_toStartOf="@+id/current_ra_text_label"
+        app:layout_constraintTop_toBottomOf="@+id/current_ra_text_label" />
+
+    <TextView
+        android:id="@+id/current_dec_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="00 : 00 : 00"
+        android:textSize="36sp"
+        app:layout_constraintStart_toStartOf="@+id/current_dec_text_label"
+        app:layout_constraintTop_toBottomOf="@+id/current_dec_text_label" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
