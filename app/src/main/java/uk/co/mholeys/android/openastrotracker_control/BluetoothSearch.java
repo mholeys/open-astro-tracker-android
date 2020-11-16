@@ -18,7 +18,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-import uk.co.mholeys.android.openastrotracker_control.comms.handlers.BluetoothCommunicationHandler;
+import uk.co.mholeys.android.openastrotracker_control.mount.Mount;
 
 public class BluetoothSearch {
 
@@ -28,18 +28,19 @@ public class BluetoothSearch {
     private Activity activity;
     private BluetoothAdapter adapter;
 
-    public MutableLiveData<Set<BluetoothDevice>> obsvDevices = new MutableLiveData<>();
+    public MutableLiveData<Set<BluetoothDevice>> obsDevices = new MutableLiveData<>();
     private Set<BluetoothDevice> devices = new HashSet<>();
     private ConnectThread connectThread;
     private BluetoothSocket client;
     private BluetoothDevice device;
+    private Mount mount;
 
     public Handler bluetoothHandler;
-    public MountBluetoothConnectionService service;
-
+//    public MountBluetoothConnectionService service;
+private static final int GET_RA_STEPS_PER_DEG = 1;
     public void setup(Activity activity) {
         this.activity = activity;
-        obsvDevices.postValue(devices);
+        obsDevices.postValue(devices);
 
         adapter = BluetoothAdapter.getDefaultAdapter();
         if (adapter == null) {
@@ -60,7 +61,7 @@ public class BluetoothSearch {
         if (!bluetooth) return null;
         Set<BluetoothDevice> devices = adapter.getBondedDevices();
         this.devices.addAll(devices);
-        obsvDevices.postValue(this.devices);
+        obsDevices.postValue(this.devices);
         return devices;
     }
 
@@ -79,11 +80,27 @@ public class BluetoothSearch {
         this.client = client;
         Log.d(TAG, "onConnected: Connected");
         // Start processing data
-        service = new MountBluetoothConnectionService(client, bluetoothHandler);
+//        service = new MountBluetoothConnectionService(client, bluetoothHandler);
 //        disconnect();
+        try {
+            mount = new Mount(client);
+            mount.getSiteLatitude();
+            mount.getSiteLongitude();
+            // Set LST?
+            mount.getPosition();
+            mount.getRAStepsPerDegree();
+            mount.getDecStepsPerDegree();
+            mount.getSpeedFactor();
+            mount.getHA();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void disconnect() {
+        if (mount != null) {
+            mount.close();
+        }
         if (client != null) {
             try {
                 client.close();
@@ -104,7 +121,7 @@ public class BluetoothSearch {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
 
                 devices.add(device);
-                obsvDevices.postValue(devices);
+                obsDevices.postValue(devices);
             }
         }
     };
@@ -119,6 +136,9 @@ public class BluetoothSearch {
 
     public void connectClient(BluetoothDevice device) {
         if (!bluetooth) return;
+        if (connectThread != null) {
+            connectThread.cancel();
+        }
         Log.d(TAG, "connectClient: Connecting");
         UUID id = UUID.fromString(activity.getString(R.string.bluetooth_sdp_uuid));
         connectThread = new ConnectThread(device, id);

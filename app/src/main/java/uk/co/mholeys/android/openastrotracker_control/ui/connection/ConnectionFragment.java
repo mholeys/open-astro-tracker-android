@@ -25,7 +25,6 @@ import androidx.lifecycle.Observer;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -104,7 +103,7 @@ public class ConnectionFragment extends Fragment {
     public void onResume() {
         super.onResume();
         if (searcher != null) {
-            addNewDevices(searcher.obsvDevices.getValue());
+            addNewDevices(searcher.obsDevices.getValue());
         }
     }
 
@@ -122,7 +121,9 @@ public class ConnectionFragment extends Fragment {
 
     private void findBluetoothDevices() {
         Log.d(TAG, "findBluetoothDevices: ");
-        if (searcher == null) {
+        if (searcher != null) {
+            searcher.disconnect();
+        } else {
             Log.d(TAG, "findBluetoothDevices: Creating new searcher");
             searcher = new BluetoothSearch();
             IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
@@ -134,7 +135,7 @@ public class ConnectionFragment extends Fragment {
             Log.d(TAG, "findBluetoothDevices: discoveringDevices");
             searcher.discoverDevices();
         }
-        searcher.obsvDevices.observe(this, new Observer<Set<BluetoothDevice>>() {
+        searcher.obsDevices.observe(this, new Observer<Set<BluetoothDevice>>() {
             @Override
             public void onChanged(Set<BluetoothDevice> devices) {
                 addNewDevices(devices);

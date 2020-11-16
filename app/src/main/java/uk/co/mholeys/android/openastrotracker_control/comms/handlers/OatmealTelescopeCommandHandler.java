@@ -309,9 +309,11 @@ public class OatmealTelescopeCommandHandler implements ITelescopeCommandHandler 
 
         String substring = cmd.substring(0, cmd.length() - 2);
         if (cmd.endsWith("#,#")) {
+            // Full response
             // Was Async
             return _commHandler.sendCommand(substring);
         } else if (cmd.endsWith("#,n")) {
+            // Numerical Response
             // Was Async
             return _commHandler.sendCommandConfirm(substring);
         }
