@@ -48,7 +48,9 @@ public class DevicesAdapter extends RecyclerView.Adapter<DeviceViewHolder> {
 
     public void updateSet(Set<IDevice> devices) {
         this.devices.clear();
-        this.devices.addAll(devices);
+        if (devices != null) {
+            this.devices.addAll(devices);
+        }
         notifyDataSetChanged();
     }
 

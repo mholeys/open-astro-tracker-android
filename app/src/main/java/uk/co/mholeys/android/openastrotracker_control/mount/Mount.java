@@ -1,8 +1,10 @@
 package uk.co.mholeys.android.openastrotracker_control.mount;
 
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 import android.widget.Toast;
@@ -16,19 +18,19 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
 
-import uk.co.mholeys.android.openastrotracker_control.MountBluetoothConnectionService;
-import uk.co.mholeys.android.openastrotracker_control.comms.handlers.CommandResponse;
-import uk.co.mholeys.android.openastrotracker_control.comms.handlers.OatmealTelescopeCommandHandler;
 import uk.co.mholeys.android.openastrotracker_control.comms.model.MountState;
+import uk.co.mholeys.android.openastrotracker_control.comms.model.OTAEpoch;
 import uk.co.mholeys.android.openastrotracker_control.comms.model.TelescopePosition;
 
 public class Mount {
 
     private static final String TAG = "OTA_MOUNT";
     OTAComms ota;
+    private Handler handler;
 
-    public Mount(BluetoothSocket socket) throws IOException {
+    public Mount(BluetoothSocket socket, Handler handler) throws IOException {
         ota = new OTAComms(socket.getInputStream(), socket.getOutputStream());
+        this.handler = handler;
         ota.start();
     }
 
@@ -37,34 +39,33 @@ public class Mount {
         ota.start();
     }
 
-
     // TODO: implement handler that takes results from all of these callbacks
     // TODO:^possibly abstract to allow bluetooth/wifi/serial differences?
 
     // TODO: implement all these messages in handler
     // TODO: finish parsing data in callbacks!
 
-    private static final int REFRESH_MOUNT_STATE    = 1;
-    private static final int GET_POSITION           = 2;
-    private static final int GET_SITE_LATITUDE      = 3;
-    private static final int GET_SITE_LONGITUDE     = 4;
-    private static final int SET_SITE_LATITUDE      = 5;
-    private static final int SET_SITE_LONGITUDE     = 6;
-    private static final int START_MOVING           = 7;
-    private static final int SLEW                   = 8;
-    private static final int SYNC                   = 9;
-    private static final int GO_HOME                = 10;
-    private static final int SET_HOME               = 11;
-    private static final int GET_HA                 = 12;
-    private static final int SET_TRACKING           = 13;
-    private static final int SET_LOCATION           = 14;
-    private static final int PARK                   = 15;
-    private static final int UNPARK                 = 16;
-    private static final int STOP_SLEWING           = 17;
-    private static final int START_SLEWING          = 18;
-    private static final int GET_RA_STEPS_PER_DEG   = 19;
-    private static final int GET_DEC_STEPS_PER_DEG  = 20;
-    private static final int GET_SPEED_FACTOR       = 21;
+    public static final int REFRESH_MOUNT_STATE    = 1;
+    public static final int GET_POSITION           = 2;
+    public static final int GET_SITE_LATITUDE      = 3;
+    public static final int GET_SITE_LONGITUDE     = 4;
+    public static final int SET_SITE_LATITUDE      = 5;
+    public static final int SET_SITE_LONGITUDE     = 6;
+    public static final int START_MOVING           = 7;
+    public static final int SLEW                   = 8;
+    public static final int SYNC                   = 9;
+    public static final int GO_HOME                = 10;
+    public static final int SET_HOME               = 11;
+    public static final int GET_HA                 = 12;
+    public static final int SET_TRACKING           = 13;
+    public static final int SET_LOCATION           = 14;
+    public static final int PARK                   = 15;
+    public static final int UNPARK                 = 16;
+    public static final int STOP_SLEWING           = 17;
+    public static final int START_SLEWING          = 18;
+    public static final int GET_RA_STEPS_PER_DEG   = 19;
+    public static final int GET_DEC_STEPS_PER_DEG  = 20;
+    public static final int GET_SPEED_FACTOR       = 21;
 
 //    private static final Handler bluetoothHandler = new Handler() {
 //        @Override
@@ -143,21 +144,25 @@ public class Mount {
                 String newDEC = result;
                 if (!success || (newRA == null) || (newDEC == null)) {
                     Log.e(TAG, "getPositionDEC: failed");
+                } else {
+                    // Parse RA/DEC
+                        double dRa, dDec;
+                        try {
+                            dRa = tryParseRA(newRA);
+                            dDec = tryParseDec(newDEC);
+                            MountState.setRightAscension(dRa);
+                            MountState.setDeclination(dDec);
+                            Message writtenMsg = handler.obtainMessage(Mount.GET_POSITION, -0, -1, new TelescopePosition(dRa, dDec, OTAEpoch.JNOW));
+                            writtenMsg.sendToTarget();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                 }
             }
         };
         // Full response
         ota.sendCommand(":GD#", decCallback);
-//        if (ra.success &&dec.success) {
-//            double dRa, dDec;
-//            try {
-//                dRa = tryParseRA(ra.data);
-//                dDec = tryParseDec(dec.data);
-//                MountState.setRightAscension(dRa);
-//                MountState.setDeclination(dDec);
-//                return new TelescopePosition(dRa, dDec, OTAEpoch.JNOW);
-//            } catch (Exception e) { }
-//        }
+
 //
 //        MountState.setRightAscension(0);
 //        MountState.setDeclination(0);
@@ -170,7 +175,7 @@ public class Mount {
             @Override
             public void result(boolean success, String result) {
                 if (success) {
-                    Log.e(TAG, "getSiteLat: got" + result);
+                    Log.d(TAG, "getSiteLat: got" + result);
                     float lat = (float) tryParseDec(result);
                 } else {
                     // 0
@@ -186,7 +191,7 @@ public class Mount {
             @Override
             public void result(boolean success, String result) {
                 if (success) {
-                    Log.e(TAG, "getSiteLon: got" + result);
+                    Log.d(TAG, "getSiteLon: got" + result);
                     double lon = tryParseDec(result);
                     if (lon > 180) {
                         lon -= 360;
@@ -253,7 +258,7 @@ public class Mount {
     }
 
     private double tryParseDec(String dec) {
-        String[] parts = dec.split("\\*|\\\\");
+        String[] parts = dec.split("\\*|\'");
         double dDec = Integer.parseInt(parts[0]) + Integer.parseInt(parts[1]) / 60.0;
         if (parts.length > 2) {
             dDec += Integer.parseInt(parts[2]) / 3600.0;
@@ -391,7 +396,7 @@ public class Mount {
             @Override
             public void result(boolean success, String result) {
                 if (success && result.length() >= 6) {
-                    Log.e(TAG, "getHA: got " + result);
+                    Log.d(TAG, "getHA: got " + result);
                     String newHa = String.format("%sh %sm %ss", result.substring(0, 2), result.substring(2, 4), result.substring(4, 6));
                     Log.d(TAG, "getHAPostHome: " + newHa);
                     // TODO:?

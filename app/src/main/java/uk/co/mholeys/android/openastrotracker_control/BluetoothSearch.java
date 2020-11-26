@@ -8,21 +8,34 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
+import android.os.Message;
+import android.os.Parcelable;
 import android.util.Log;
 import android.widget.Toast;
 
 import androidx.lifecycle.MutableLiveData;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
+import uk.co.mholeys.android.openastrotracker_control.comms.model.OTAEpoch;
+import uk.co.mholeys.android.openastrotracker_control.comms.model.TelescopePosition;
 import uk.co.mholeys.android.openastrotracker_control.mount.Mount;
+import uk.co.mholeys.android.openastrotracker_control.ui.connection.ConnectionFragment;
 
 public class BluetoothSearch {
 
     public static final int REQUEST_ENABLE_BT = 0x19FF;
+
+    public static final int DEVICE_CONNECTED = 0x222001;
+    public static final int DEVICE_DISCONNECTED = 0x222002;
+    public static final int DEVICE_FAILED = 0x222003;
+    public static final int DEVICE_FAILED_DISCONNECT = 0x222004;
+    public static final int DEVICE_CONNECTING = 0x222005;
+
     private static final String TAG = "BluetoothSearch";
     private boolean bluetooth = false;
     private Activity activity;
@@ -35,11 +48,14 @@ public class BluetoothSearch {
     private BluetoothDevice device;
     private Mount mount;
 
-    public Handler bluetoothHandler;
-//    public MountBluetoothConnectionService service;
-private static final int GET_RA_STEPS_PER_DEG = 1;
-    public void setup(Activity activity) {
+//    public Handler bluetoothHandler;
+    public Handler handler;
+    //    public MountBluetoothConnectionService service;
+    private static final int GET_RA_STEPS_PER_DEG = 1;
+
+    public void setup(Activity activity, Handler handler) {
         this.activity = activity;
+        this.handler = handler;
         obsDevices.postValue(devices);
 
         adapter = BluetoothAdapter.getDefaultAdapter();
@@ -54,6 +70,7 @@ private static final int GET_RA_STEPS_PER_DEG = 1;
             // Bluetooth is disabled, so prompt/request them to turn it on
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             activity.startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+            bluetooth = false;
         }
     }
 
@@ -83,7 +100,7 @@ private static final int GET_RA_STEPS_PER_DEG = 1;
 //        service = new MountBluetoothConnectionService(client, bluetoothHandler);
 //        disconnect();
         try {
-            mount = new Mount(client);
+            mount = new Mount(client, handler);
             mount.getSiteLatitude();
             mount.getSiteLongitude();
             // Set LST?
@@ -102,11 +119,17 @@ private static final int GET_RA_STEPS_PER_DEG = 1;
             mount.close();
         }
         if (client != null) {
+            boolean wasConnected = client.isConnected();
             try {
                 client.close();
                 Log.d(TAG, "disconnected");
+                if (wasConnected) {
+                    Message writtenMsg = handler.obtainMessage(DEVICE_DISCONNECTED, -0, -1, device.getName());
+                    writtenMsg.sendToTarget();
+                }
             } catch (IOException e) {
-                // ?
+                Message writtenMsg = handler.obtainMessage(DEVICE_FAILED_DISCONNECT, -0, -1, device.getName());
+                writtenMsg.sendToTarget();
                 e.printStackTrace();
             }
         }
@@ -126,10 +149,15 @@ private static final int GET_RA_STEPS_PER_DEG = 1;
         }
     };
 
+    public void enableBluetoothUse() {
+        bluetooth = true;
+    }
+
     public void disableBluetoothUse() {
         bluetooth = false;
     }
 
+    /** Does not actually check bluetooth state! Just if we are allowing use, based on cached state */
     public boolean hasBluetooth() {
         return bluetooth;
     }
@@ -144,6 +172,10 @@ private static final int GET_RA_STEPS_PER_DEG = 1;
         connectThread = new ConnectThread(device, id);
         connectThread.start();
         this.device = device;
+    }
+
+    public void refresh() {
+        obsDevices.postValue(devices);
     }
 
     private class ConnectThread extends Thread {
@@ -182,12 +214,16 @@ private static final int GET_RA_STEPS_PER_DEG = 1;
                 } catch (IOException closeException) {
                     Log.e(TAG, "Could not close the client socket", closeException);
                 }
+                Message writtenMsg = handler.obtainMessage(DEVICE_FAILED, -0, -1, device.getName());
+                writtenMsg.sendToTarget();
                 return;
             }
 
             // The connection attempt succeeded. Perform work associated with
             // the connection in a separate thread.
             Log.d(TAG, "run: Connected! got socket");
+            Message writtenMsg = handler.obtainMessage(DEVICE_CONNECTED, -0, -1, device.getName());
+            writtenMsg.sendToTarget();
             onConnected(mmSocket);
         }
 
@@ -195,10 +231,28 @@ private static final int GET_RA_STEPS_PER_DEG = 1;
         public void cancel() {
             try {
                 mmSocket.close();
+                Message writtenMsg = handler.obtainMessage(DEVICE_DISCONNECTED, -0, -1, device.getName());
+                writtenMsg.sendToTarget();
             } catch (IOException e) {
                 Log.e(TAG, "Could not close the client socket", e);
+                Message writtenMsg = handler.obtainMessage(DEVICE_FAILED_DISCONNECT, -0, -1, device.getName());
+                writtenMsg.sendToTarget();
             }
         }
+    }
+
+    public void addSavedDevices(ArrayList<Parcelable> parcelables) {
+        for (Parcelable p : parcelables) {
+            if (p instanceof BluetoothDevice) {
+                devices.add((BluetoothDevice) p);
+            }
+        }
+        obsDevices.postValue(devices);
+    }
+
+    public boolean isBluetoothEnabled() {
+        if (adapter == null) return false;
+        return adapter.isEnabled();
     }
 
 }
