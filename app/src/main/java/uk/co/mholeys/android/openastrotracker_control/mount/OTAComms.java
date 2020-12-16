@@ -3,24 +3,13 @@ package uk.co.mholeys.android.openastrotracker_control.mount;
 import android.util.Log;
 
 import java.io.DataInputStream;
-import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.Socket;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Queue;
-import java.util.Stack;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import uk.co.mholeys.android.openastrotracker_control.comms.handlers.CommandResponse;
-import uk.co.mholeys.android.openastrotracker_control.comms.model.MountState;
-import uk.co.mholeys.android.openastrotracker_control.comms.model.OTAEpoch;
-import uk.co.mholeys.android.openastrotracker_control.comms.model.TelescopePosition;
 
 public class OTAComms extends Thread {
 
@@ -28,6 +17,7 @@ public class OTAComms extends Thread {
     private DataInputStream in;
     private DataOutputStream out;
     private boolean running = false;
+    DisconnectListener disconnectListener;
 
     ConcurrentLinkedQueue<CommandResponse> responseStack = new ConcurrentLinkedQueue<>();
 
@@ -61,6 +51,9 @@ public class OTAComms extends Thread {
             } catch (IOException e) {
                 if (e.getMessage().equals("socket closed")) {
                     running = false;
+                    if (disconnectListener != null) {
+                        disconnectListener.disconnected();
+                    }
                     break;
                 }
                 e.printStackTrace();
@@ -95,9 +88,10 @@ public class OTAComms extends Thread {
     }
 
     public interface CommandResponse {
-
         public void result(boolean success, String result);
-
+    }
+    public interface DisconnectListener {
+        public void disconnected();
     }
 
 }

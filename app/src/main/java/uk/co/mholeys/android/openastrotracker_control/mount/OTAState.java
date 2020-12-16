@@ -1,4 +1,4 @@
-package uk.co.mholeys.android.openastrotracker_control;
+package uk.co.mholeys.android.openastrotracker_control.mount;
 
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -9,14 +9,33 @@ import uk.co.mholeys.android.openastrotracker_control.comms.model.TelescopePosit
 
 public class OTAState implements Parcelable  {
 
+    private static OTAState instance;
+    public static OTAState getInstance() {
+        if (instance == null) {
+            instance = new OTAState();
+        }
+        return instance;
+    }
+
     public MutableLiveData<TelescopePosition> position = new MutableLiveData<>();
+    public MutableLiveData<Boolean> tracking = new MutableLiveData<>();
+    public MutableLiveData<Boolean> slewing = new MutableLiveData<>();
+    public MutableLiveData<Boolean> slewingRA = new MutableLiveData<>();
+    public MutableLiveData<Boolean> slewingDEC = new MutableLiveData<>();
+
+    public OTAState() {
+
+    }
 
     protected OTAState(Parcel in) {
+        instance = this;
         // Has position stored
         if (in.readInt() == 1) {
             TelescopePosition pos = in.readParcelable(getClass().getClassLoader());
             this.position.postValue(pos);
         }
+        this.tracking.postValue(in.readInt() == 1);
+        instance = this;
     }
 
     public static final Creator<OTAState> CREATOR = new Creator<OTAState>() {
@@ -45,5 +64,6 @@ public class OTAState implements Parcelable  {
         } else {
             dest.writeInt(0);
         }
+        dest.writeInt(tracking.getValue() ? 1 : 0);
     }
 }

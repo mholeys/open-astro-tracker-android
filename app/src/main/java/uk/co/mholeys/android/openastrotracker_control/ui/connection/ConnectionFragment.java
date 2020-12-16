@@ -18,6 +18,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -25,6 +26,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import uk.co.mholeys.android.openastrotracker_control.ISearcherControl;
+import uk.co.mholeys.android.openastrotracker_control.MountViewModel;
 import uk.co.mholeys.android.openastrotracker_control.R;
 import uk.co.mholeys.android.openastrotracker_control.comms.model.TelescopePosition;
 import uk.co.mholeys.android.openastrotracker_control.mount.Mount;
@@ -35,6 +37,7 @@ public class ConnectionFragment extends Fragment {
 
     private ISearcherControl control;
     private DevicesAdapter deviceAdapter;
+    private MountViewModel mountViewModel;
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
@@ -44,6 +47,7 @@ public class ConnectionFragment extends Fragment {
         } else {
             Log.e(TAG, "onActivityCreated: Activity doesn't implement ISearcherControl!");
         }
+        mountViewModel = new ViewModelProvider(this).get(MountViewModel.class);
     }
 
     public View onCreateView(@NonNull LayoutInflater inflater,

@@ -1,41 +1,39 @@
 package uk.co.mholeys.android.openastrotracker_control.mount;
 
-import android.annotation.SuppressLint;
-import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.os.Handler;
-import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
-import android.widget.Toast;
-
-import androidx.fragment.app.FragmentActivity;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
 
-import uk.co.mholeys.android.openastrotracker_control.comms.model.MountState;
 import uk.co.mholeys.android.openastrotracker_control.comms.model.OTAEpoch;
 import uk.co.mholeys.android.openastrotracker_control.comms.model.TelescopePosition;
 
 public class Mount {
 
     private static final String TAG = "OTA_MOUNT";
-    OTAComms ota;
+    public OTAComms ota;
     private Handler handler;
 
-    public Mount(BluetoothSocket socket, Handler handler) throws IOException {
-        ota = new OTAComms(socket.getInputStream(), socket.getOutputStream());
-        this.handler = handler;
-        ota.start();
+    public Mount(Socket socket, Handler handler) throws IOException {
+        this(socket.getInputStream(), socket.getOutputStream(), handler);
     }
 
-    public Mount(Socket socket) throws IOException {
-        ota = new OTAComms(socket.getInputStream(), socket.getOutputStream());
+    public Mount(BluetoothSocket socket, Handler handler) throws IOException {
+        this(socket.getInputStream(), socket.getOutputStream(), handler);
+    }
+
+    public Mount(InputStream in, OutputStream out, Handler handler) {
+        ota = new OTAComms(in, out);
+        this.handler = handler;
         ota.start();
     }
 
@@ -52,20 +50,21 @@ public class Mount {
     public static final int SET_SITE_LATITUDE      = 5;
     public static final int SET_SITE_LONGITUDE     = 6;
     public static final int START_MOVING           = 7;
-    public static final int SLEW                   = 8;
-    public static final int SYNC                   = 9;
-    public static final int GO_HOME                = 10;
-    public static final int SET_HOME               = 11;
-    public static final int GET_HA                 = 12;
-    public static final int SET_TRACKING           = 13;
-    public static final int SET_LOCATION           = 14;
-    public static final int PARK                   = 15;
-    public static final int UNPARK                 = 16;
-    public static final int STOP_SLEWING           = 17;
-    public static final int START_SLEWING          = 18;
-    public static final int GET_RA_STEPS_PER_DEG   = 19;
-    public static final int GET_DEC_STEPS_PER_DEG  = 20;
-    public static final int GET_SPEED_FACTOR       = 21;
+    public static final int STOP_MOVING            = 8;
+    public static final int SLEW                   = 9;
+    public static final int SYNC                   = 10;
+    public static final int GO_HOME                = 11;
+    public static final int SET_HOME               = 12;
+    public static final int GET_HA                 = 13;
+    public static final int SET_TRACKING           = 14;
+    public static final int SET_LOCATION           = 15;
+    public static final int PARK                   = 16;
+    public static final int UNPARK                 = 17;
+    public static final int STOP_SLEWING           = 18;
+    public static final int START_SLEWING          = 19;
+    public static final int GET_RA_STEPS_PER_DEG   = 20;
+    public static final int GET_DEC_STEPS_PER_DEG  = 21;
+    public static final int GET_SPEED_FACTOR       = 22;
 
 //    private static final Handler bluetoothHandler = new Handler() {
 //        @Override
@@ -150,8 +149,6 @@ public class Mount {
                         try {
                             dRa = tryParseRA(newRA);
                             dDec = tryParseDec(newDEC);
-                            MountState.setRightAscension(dRa);
-                            MountState.setDeclination(dDec);
                             Message writtenMsg = handler.obtainMessage(Mount.GET_POSITION, -0, -1, new TelescopePosition(dRa, dDec, OTAEpoch.JNOW));
                             writtenMsg.sendToTarget();
                         } catch (Exception e) {
@@ -162,11 +159,6 @@ public class Mount {
         };
         // Full response
         ota.sendCommand(":GD#", decCallback);
-
-//
-//        MountState.setRightAscension(0);
-//        MountState.setDeclination(0);
-//        return TelescopePosition.Invalid;
     }
 
     public void getSiteLatitude() {
@@ -177,6 +169,8 @@ public class Mount {
                 if (success) {
                     Log.d(TAG, "getSiteLat: got" + result);
                     float lat = (float) tryParseDec(result);
+                    Message writtenMsg = handler.obtainMessage(Mount.GET_SITE_LATITUDE, success ? 1 : 0, 0, lat);
+                    writtenMsg.sendToTarget();
                 } else {
                     // 0
                     Log.e(TAG, "getSiteLat: failed");
@@ -196,6 +190,8 @@ public class Mount {
                     if (lon > 180) {
                         lon -= 360;
                     }
+                    Message writtenMsg = handler.obtainMessage(Mount.GET_SITE_LONGITUDE, success ? 1 : 0, 0, lon);
+                    writtenMsg.sendToTarget();
                 } else {
                     // 0
                     Log.e(TAG, "getSiteLon: failed");
@@ -214,6 +210,8 @@ public class Mount {
             @Override
             public void result(boolean success, String result) {
                 if (success) {
+                    Message writtenMsg = handler.obtainMessage(Mount.SET_SITE_LATITUDE, success ? 1 : 0, 0, result);
+                    writtenMsg.sendToTarget();
 //                    return lat.data;
                 } else {
                     // 0
@@ -232,7 +230,8 @@ public class Mount {
             @Override
             public void result(boolean success, String result) {
                 if (success) {
-//                    return lon.data;
+                    Message writtenMsg = handler.obtainMessage(Mount.SET_SITE_LONGITUDE, success ? 1 : 0, 0, result);
+                    writtenMsg.sendToTarget();
                 } else {
                     // 0
                 }
@@ -271,15 +270,18 @@ public class Mount {
         // Blind, no response
         String command = String.format(":M%s#", dir);
         ota.sendBlindCommand(command);
+        Message writtenMsg = handler.obtainMessage(Mount.START_MOVING, 1, 0, null);
+        writtenMsg.sendToTarget();
 //        MountState.setSlewing(true);
 //        ++_moveState;
-
     }
 
     public void stopMoving(String dir) {
         // Blind, no response
         String command = String.format(":Q%s#", dir);
         ota.sendBlindCommand(command);
+        Message writtenMsg = handler.obtainMessage(Mount.STOP_MOVING, 1, 0, null);
+        writtenMsg.sendToTarget();
 //        --_moveState;
 //        if (_moveState <= 0) {
 //            _moveState = 0;
@@ -300,8 +302,10 @@ public class Mount {
             @Override
             public void result(boolean success, String result) {
                 if (!success || !result.equals("1")) {
+                    Message writtenMsg = handler.obtainMessage(Mount.SLEW, success ? 1 : 0, 0, result);
+                    writtenMsg.sendToTarget();
                     // TODO:
-                    //return false;
+                    return;
                 }
 
                 int hour, min, sec;
@@ -315,15 +319,17 @@ public class Mount {
                     @Override
                     public void result(boolean success2, String result2) {
                         if (!success2 || !result2.equals("1")) {
-                            // TODO:
-                            //return false;
+                            Message writtenMsg = handler.obtainMessage(Mount.SLEW, success2 ? 1 : 0, 1, result2);
+                            writtenMsg.sendToTarget();
+                            return;
                         }
                         // Numerical response treat as full
                         String command3 = String.format(":MS#");
                         ota.sendCommand(command3, new OTAComms.CommandResponse() {
                             @Override
                             public void result(boolean success3, String result3) {
-                                // return success3
+                                Message writtenMsg = handler.obtainMessage(Mount.SLEW, success3 ? 1 : 0, 2, result3);
+                                writtenMsg.sendToTarget();
                             }
                         });
                     }
@@ -346,7 +352,9 @@ public class Mount {
             @Override
             public void result(boolean success, String result) {
                 if (!success || result.equals("1")) {
-                    // TODO: return false;
+                    Message writtenMsg = handler.obtainMessage(Mount.SYNC, success ? 1 : 0, 0, result);
+                    writtenMsg.sendToTarget();
+                    return;
                 }
                 HMS hms = new HMS();
                 floatToHMS(Math.abs(position.RightAscension), hms);
@@ -360,11 +368,14 @@ public class Mount {
                     @Override
                     public void result(boolean success2, String result2) {
                         if (!success2 || result2.equals("1")) {
-                            // TODO: return false;
+                            Message writtenMsg = handler.obtainMessage(Mount.SYNC, success2 ? 1 : 0, 0, result2);
+                            writtenMsg.sendToTarget();
+                            return;
                         }
                         // Blind, no response
-                        boolean success3 = ota.sendBlindCommand(":CM#,#");
-                        // TODO: return success3;
+                        boolean success3 = ota.sendBlindCommand(":CM#");
+                        Message writtenMsg = handler.obtainMessage(Mount.SYNC, success3 ? 1 : 0, 0, null);
+                        writtenMsg.sendToTarget();
                     }
                 });
 
@@ -374,7 +385,8 @@ public class Mount {
 
     public void goHome() {
         boolean success = ota.sendBlindCommand(":hP#");
-        // TODO return success;
+        Message writtenMsg = handler.obtainMessage(Mount.GO_HOME, success ? 1 : 0, 0, null);
+        writtenMsg.sendToTarget();
     }
 
     public void setHome() {
@@ -384,6 +396,8 @@ public class Mount {
             public void result(boolean success, String result) {
                 // Todo:
                 Log.d(TAG, "setHomeResult: "  + success + " " + result);
+                Message writtenMsg = handler.obtainMessage(Mount.SET_HOME, success ? 1 : 0, 0, result);
+                writtenMsg.sendToTarget();
                 // Unknown result
             }
         });
@@ -399,9 +413,12 @@ public class Mount {
                     Log.d(TAG, "getHA: got " + result);
                     String newHa = String.format("%sh %sm %ss", result.substring(0, 2), result.substring(2, 4), result.substring(4, 6));
                     Log.d(TAG, "getHAPostHome: " + newHa);
-                    // TODO:?
+                    Message writtenMsg = handler.obtainMessage(Mount.GET_HA, success ? 1 : 0, 0, newHa);
+                    writtenMsg.sendToTarget();
                 } else {
                     Log.e(TAG, "getHA: failed");
+                    Message writtenMsg = handler.obtainMessage(Mount.GET_HA, success ? 1 : 0, 0, result);
+                    writtenMsg.sendToTarget();
                 }
             }
         });
@@ -413,9 +430,9 @@ public class Mount {
         ota.sendCommand(":MT%d#", new OTAComms.CommandResponse() {
             @Override
             public void result(boolean success, String result) {
-                if (success) {
-                    MountState.setTracking(enabled);
-                }
+//              MountState.setTracking(enabled);
+                Message writtenMsg = handler.obtainMessage(Mount.SET_TRACKING, success ? 1 : 0, 0, result);
+                writtenMsg.sendToTarget();
                 // TODO: return success;
             }
         });
@@ -509,6 +526,8 @@ public class Mount {
             @Override
             public void result(boolean success, String result) {
                 Log.d(TAG, "parkResult: " + success + " " + result);
+                Message writtenMsg = handler.obtainMessage(Mount.PARK, success ? 1 : 0, 0, result);
+                writtenMsg.sendToTarget();
             }
         });
     }
@@ -519,6 +538,8 @@ public class Mount {
             @Override
             public void result(boolean success, String result) {
                 Log.d(TAG, "unparkResult: " + success + " " + result);
+                Message writtenMsg = handler.obtainMessage(Mount.UNPARK, success ? 1 : 0, 0, result);
+                writtenMsg.sendToTarget();
             }
         });
     }
@@ -526,18 +547,22 @@ public class Mount {
     public void stopSlewing(char dir) {
         // No response
         ota.sendBlindCommand(":Q"+dir+"#");
+        Message writtenMsg = handler.obtainMessage(Mount.STOP_SLEWING, 1, 0, null);
+        writtenMsg.sendToTarget();
     }
 
-    public void startSlewing(char dir) {
+    public void toggleSlewing(char dir) {
         // No response
         ota.sendBlindCommand(":M"+dir+"#");
+        Message writtenMsg = handler.obtainMessage(Mount.START_SLEWING, 1, 0, null);
+        writtenMsg.sendToTarget();
     }
 
-    public void startSlewing(String direction) {
+    public void toggleSlewing(String direction) {
         boolean turnOn = direction.charAt(0) == '+';
         char dir = Character.toLowerCase(direction.charAt(1));
         if (turnOn) {
-            startSlewing(dir);
+            toggleSlewing(dir);
         } else {
             stopSlewing(dir);
         }
@@ -550,6 +575,8 @@ public class Mount {
             public void result(boolean success, String result) {
                 // TODO:
                 Log.d(TAG, "getRAStepsPerDegreeResult: " + success + " " + result);
+                Message writtenMsg = handler.obtainMessage(Mount.GET_RA_STEPS_PER_DEG, success ? 1 : 0, 0, result);
+                writtenMsg.sendToTarget();
             }
         });
     }
@@ -560,6 +587,8 @@ public class Mount {
             @Override
             public void result(boolean success, String result) {
                 Log.d(TAG, "getDECStepsPerDegreeResult: " + success + " " + result);
+                Message writtenMsg = handler.obtainMessage(Mount.GET_DEC_STEPS_PER_DEG, success ? 1 : 0, 0, result);
+                writtenMsg.sendToTarget();
             }
         });
     }
@@ -570,6 +599,8 @@ public class Mount {
             @Override
             public void result(boolean success, String result) {
                 Log.d(TAG, "getSpeedFactorResult: " + success + " " + result);
+                Message writtenMsg = handler.obtainMessage(Mount.GET_SPEED_FACTOR, success ? 1 : 0, 0, result);
+                writtenMsg.sendToTarget();
             }
         });
     }

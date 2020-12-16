@@ -14,6 +14,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
+import uk.co.mholeys.android.openastrotracker_control.MountViewModel;
 import uk.co.mholeys.android.openastrotracker_control.PolarAlignmentDialogFragment;
 import uk.co.mholeys.android.openastrotracker_control.PolarAlignmentDialogFragment2;
 import uk.co.mholeys.android.openastrotracker_control.R;
@@ -36,6 +37,9 @@ public class ControlFragment extends Fragment {
 
     TextView mCurrentRAText;
     TextView mCurrentDECText;
+
+    private MountViewModel mountViewModel;
+
     private PolarAlignmentDialogFragment.PolarAlignListener polarAlignmentListener = new PolarAlignmentDialogFragment.PolarAlignListener() {
 
         boolean movedHome = false;

@@ -96,22 +96,12 @@ public class BluetoothSearch {
     private void onConnected(BluetoothSocket client) {
         this.client = client;
         Log.d(TAG, "onConnected: Connected");
+        Message writtenMsg = handler.obtainMessage(DEVICE_CONNECTED, -0, -1, device.getName());
+        writtenMsg.sendToTarget();
+
         // Start processing data
 //        service = new MountBluetoothConnectionService(client, bluetoothHandler);
 //        disconnect();
-        try {
-            mount = new Mount(client, handler);
-            mount.getSiteLatitude();
-            mount.getSiteLongitude();
-            // Set LST?
-            mount.getPosition();
-            mount.getRAStepsPerDegree();
-            mount.getDecStepsPerDegree();
-            mount.getSpeedFactor();
-            mount.getHA();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     public void disconnect() {
@@ -222,8 +212,6 @@ public class BluetoothSearch {
             // The connection attempt succeeded. Perform work associated with
             // the connection in a separate thread.
             Log.d(TAG, "run: Connected! got socket");
-            Message writtenMsg = handler.obtainMessage(DEVICE_CONNECTED, -0, -1, device.getName());
-            writtenMsg.sendToTarget();
             onConnected(mmSocket);
         }
 
@@ -253,6 +241,10 @@ public class BluetoothSearch {
     public boolean isBluetoothEnabled() {
         if (adapter == null) return false;
         return adapter.isEnabled();
+    }
+
+    public BluetoothSocket getClient() {
+        return client;
     }
 
 }

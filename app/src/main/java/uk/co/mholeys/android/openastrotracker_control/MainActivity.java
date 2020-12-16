@@ -2,6 +2,7 @@ package uk.co.mholeys.android.openastrotracker_control;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
@@ -17,29 +18,33 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
 import java.util.HashSet;
+import java.util.ServiceConfigurationError;
 import java.util.Set;
 
 import kotlin.NotImplementedError;
 import uk.co.mholeys.android.openastrotracker_control.comms.model.TelescopePosition;
 import uk.co.mholeys.android.openastrotracker_control.mount.Mount;
+import uk.co.mholeys.android.openastrotracker_control.mount.OTAState;
 import uk.co.mholeys.android.openastrotracker_control.ui.connection.IDevice;
 
 public class MainActivity extends AppCompatActivity implements ISearcherControl {
 
-    private static final String TAG = "MainACt";
+    private static final String TAG = "MainAct";
 
     private EConnectionType connectionType = EConnectionType.UNKNOWN;
     private BluetoothSearch bluetoothSearch;
     private Handler handler;
     private MutableLiveData<Set<IDevice>> bluetoothDevices = new MutableLiveData<>();
+    private MountViewModel mountViewModel;
 
-    private
+    private OTAState state;
 
     enum ConnectionState { CONNECTING, CONNECTED, DISCONNECTED, FAILED, UNKNOWN };
     ConnectionState connectionState = ConnectionState.UNKNOWN;
@@ -57,87 +62,53 @@ public class MainActivity extends AppCompatActivity implements ISearcherControl 
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
         NavigationUI.setupWithNavController(navView, navController);
+
+        mountViewModel = new ViewModelProvider(this).get(MountViewModel.class);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        handler = new Handler(Looper.getMainLooper()) {
-            @Override
-            public void handleMessage(Message msg) {
-                StringBuilder result = new StringBuilder();
-                Object o = msg.obj;
-                switch (msg.what) {
-                    case Mount.REFRESH_MOUNT_STATE:
-                        break;
-                    case Mount.GET_POSITION:
-                        Log.d(TAG, "handleMessage: GET_POSITION");
-                        if (o instanceof TelescopePosition) {
-                            TelescopePosition pos = (TelescopePosition) o;
-                            Log.d(TAG, "handleMessage: RA " + pos.RightAscension + " DEC " + pos.Declination + " EPOCH " + pos.epoch);
-                        }
-                        break;
-                    case Mount.GET_SITE_LATITUDE:
-                        break;
-                    case Mount.GET_SITE_LONGITUDE:
-                        break;
-                    case Mount.SET_SITE_LATITUDE:
-                        break;
-                    case Mount.SET_SITE_LONGITUDE:
-                        break;
-                    case Mount.START_MOVING:
-                        break;
-                    case Mount.SLEW:
-                        break;
-                    case Mount.SYNC:
-                        break;
-                    case Mount.GO_HOME:
-                        break;
-                    case Mount.SET_HOME:
-                        break;
-                    case Mount.GET_HA:
-                        break;
-                    case Mount.SET_TRACKING:
-                        break;
-                    case Mount.SET_LOCATION:
-                        break;
-                    case Mount.PARK:
-                        break;
-                    case Mount.UNPARK:
-                        break;
-                    case Mount.STOP_SLEWING:
-                        break;
-                    case Mount.START_SLEWING:
-                        break;
-                    case Mount.GET_RA_STEPS_PER_DEG:
-                        break;
-                    case Mount.GET_DEC_STEPS_PER_DEG:
-                        break;
-                    case Mount.GET_SPEED_FACTOR:
-                        break;
-                    case BluetoothSearch.DEVICE_CONNECTING:
+        if (state == null) state = OTAState.getInstance();
+        if (handler == null) {
+            handler = new Handler(Looper.getMainLooper()) {
+                @Override
+                public void handleMessage(Message msg) {
+                    StringBuilder result = new StringBuilder();
+                    Object o = msg.obj;
+                    switch (msg.what) {
+                        case BluetoothSearch.DEVICE_CONNECTING:
 //                        Toast.makeText(MainActivity.this, "Connecting to " + msg.obj, Toast.LENGTH_SHORT).show();
-                        setConnectionState(ConnectionState.CONNECTING);
-                        break;
-                    case BluetoothSearch.DEVICE_CONNECTED:
-                        Toast.makeText(MainActivity.this, "Connected to " + msg.obj, Toast.LENGTH_SHORT).show();
-                        setConnectionState(ConnectionState.CONNECTED);
-                        break;
-                    case BluetoothSearch.DEVICE_DISCONNECTED:
-                        Toast.makeText(MainActivity.this, "Disconnected from " + msg.obj, Toast.LENGTH_SHORT).show();
-                        setConnectionState(ConnectionState.DISCONNECTED);
-                        break;
-                    case BluetoothSearch.DEVICE_FAILED_DISCONNECT:
+                            setConnectionState(ConnectionState.CONNECTING);
+                            break;
+                        case BluetoothSearch.DEVICE_CONNECTED:
+                            Toast.makeText(MainActivity.this, "Connected to " + msg.obj, Toast.LENGTH_SHORT).show();
+                            setConnectionState(ConnectionState.CONNECTED);
+                            // TODO: Start Service? That handles control/threads?
+                            startMountService(bluetoothSearch.getClient());
+                            break;
+                        case BluetoothSearch.DEVICE_DISCONNECTED:
+                            Toast.makeText(MainActivity.this, "Disconnected from " + msg.obj, Toast.LENGTH_SHORT).show();
+                            setConnectionState(ConnectionState.DISCONNECTED);
+                            break;
+                        case BluetoothSearch.DEVICE_FAILED_DISCONNECT:
 //                        Toast.makeText(MainActivity.this, "Failed to disconnect from " + msg.obj, Toast.LENGTH_SHORT).show();
-                        setConnectionState(ConnectionState.UNKNOWN);
-                        break;
-                    case BluetoothSearch.DEVICE_FAILED:
-                        Toast.makeText(MainActivity.this, "Failed to connect to " + msg.obj, Toast.LENGTH_SHORT).show();
-                        setConnectionState(ConnectionState.FAILED);
-                        break;
+                            setConnectionState(ConnectionState.UNKNOWN);
+                            break;
+                        case BluetoothSearch.DEVICE_FAILED:
+                            Toast.makeText(MainActivity.this, "Failed to connect to " + msg.obj, Toast.LENGTH_SHORT).show();
+                            setConnectionState(ConnectionState.FAILED);
+                            break;
+                    }
                 }
-            }
-        };
+            };
+        }
+    }
+
+    private void startMountService(BluetoothSocket client) {
+        Intent intent = new Intent(this, OTAService.class);
+        intent.putExtra("bluetooth-socket", client);
+        startService(intent);
     }
 
     private void setConnectionState(ConnectionState newState) {
