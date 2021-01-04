@@ -175,4 +175,23 @@
         app:layout_constraintStart_toStartOf="@+id/current_dec_text_label"
         app:layout_constraintTop_toBottomOf="@+id/current_dec_text_label" />
 
+    <Button
+        android:id="@+id/disconnect_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="128dp"
+        android:text="@string/disconnect"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/get_pos_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:text="Get Position"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/disconnect_btn" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

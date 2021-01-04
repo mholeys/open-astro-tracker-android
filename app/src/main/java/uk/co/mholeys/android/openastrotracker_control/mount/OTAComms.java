@@ -19,31 +19,43 @@ public class OTAComms extends Thread {
     private boolean running = false;
     DisconnectListener disconnectListener;
 
-    ConcurrentLinkedQueue<CommandResponse> responseStack = new ConcurrentLinkedQueue<>();
+    ConcurrentLinkedQueue<CommandResponse> responseStack;
 
     public OTAComms(InputStream in, OutputStream out) {
         this.in = new DataInputStream(in);
         this.out = new DataOutputStream(out);
+        responseStack = new ConcurrentLinkedQueue<>();
         running = true;
     }
 
     public void run() {
+        Log.d(TAG, "run: Started");
         StringBuilder sb = new StringBuilder(30);
         while (running) {
             try {
                 if (in.available() == 0) {
                     continue;
                 }
-                int r = -1;
-                while ((r = in.readByte()) != -1) {
-                    char c = (char) r;
-                    if (c == '#') {
-                        break;
-                    } else {
-                        sb.append(c);
+                Log.d(TAG, "run: Got some bytes " + in.available());
+                CommandResponse cr = responseStack.remove();
+                if (cr instanceof NumericCommandResponse) {
+                    // Single number no #
+                    sb.append((char)in.readByte());
+                } else {
+                    // String ended by #
+                    int r = -1;
+                    while ((r = in.readByte()) != -1) {
+                        char c = (char) r;
+                        if (c == '#') {
+                            Log.d(TAG, "run: End of answer '#'");
+                            break;
+                        } else {
+                            Log.d(TAG, "run: got '" + c + "'");
+                            sb.append(c);
+                        }
                     }
                 }
-                CommandResponse cr = responseStack.remove();
+
                 Log.d(TAG, "got " + sb.toString());
                 cr.result(true, sb.toString());
 
@@ -59,22 +71,25 @@ public class OTAComms extends Thread {
                 e.printStackTrace();
             }
         }
+        Log.d(TAG, "run: ended");
     }
 
     public synchronized void sendCommand(String command, CommandResponse callback) {
         try {
             byte[] bytes = command.getBytes(StandardCharsets.UTF_8);
+            responseStack.add(callback);
             out.write(bytes);
             out.flush();
-            responseStack.add(callback);
         } catch (IOException e) {
             callback.result(false, null);
         }
     }
 
-    public synchronized  boolean sendBlindCommand(String command) {
+    public synchronized boolean sendBlindCommand(String command) {
         try {
-            out.writeChars(command);
+            byte[] bytes = command.getBytes(StandardCharsets.UTF_8);
+            out.write(bytes);
+//            out.writeChars(command);
             out.flush();
             return true;
         } catch (IOException e) {
@@ -85,11 +100,14 @@ public class OTAComms extends Thread {
 
     public void end() {
         running = false;
+        Log.d(TAG, "end()");
     }
+
 
     public interface CommandResponse {
         public void result(boolean success, String result);
     }
+    public interface NumericCommandResponse extends CommandResponse {}
     public interface DisconnectListener {
         public void disconnected();
     }

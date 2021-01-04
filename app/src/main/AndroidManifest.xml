@@ -20,7 +20,7 @@
         </activity>
 
         <service
-            android:name=".OTAService"
+            android:name=".BluetoothOTAService"
             android:enabled="true"
             android:exported="true"></service>
     </application>

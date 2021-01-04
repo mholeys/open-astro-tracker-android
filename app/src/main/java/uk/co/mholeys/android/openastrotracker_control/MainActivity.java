@@ -1,14 +1,22 @@
 package uk.co.mholeys.android.openastrotracker_control;
 
 import android.app.Activity;
+import android.app.ActivityManager;
+import android.app.Application;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothSocket;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
+import android.media.midi.MidiOutputPort;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.os.Messenger;
+import android.os.RemoteException;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -24,12 +32,12 @@ import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
+import java.lang.ref.WeakReference;
 import java.util.HashSet;
-import java.util.ServiceConfigurationError;
+import java.util.List;
 import java.util.Set;
 
 import kotlin.NotImplementedError;
-import uk.co.mholeys.android.openastrotracker_control.comms.model.TelescopePosition;
 import uk.co.mholeys.android.openastrotracker_control.mount.Mount;
 import uk.co.mholeys.android.openastrotracker_control.mount.OTAState;
 import uk.co.mholeys.android.openastrotracker_control.ui.connection.IDevice;
@@ -38,6 +46,8 @@ public class MainActivity extends AppCompatActivity implements ISearcherControl 
 
     private static final String TAG = "MainAct";
 
+    public static final int SETUP_CLIENT_MESSENGER = 512345;
+
     private EConnectionType connectionType = EConnectionType.UNKNOWN;
     private BluetoothSearch bluetoothSearch;
     private Handler handler;
@@ -45,6 +55,10 @@ public class MainActivity extends AppCompatActivity implements ISearcherControl 
     private MountViewModel mountViewModel;
 
     private OTAState state;
+    Messenger incomingMessenger;
+    public Messenger serviceMessenger;
+    public boolean bound = false;
+
 
     enum ConnectionState { CONNECTING, CONNECTED, DISCONNECTED, FAILED, UNKNOWN };
     ConnectionState connectionState = ConnectionState.UNKNOWN;
@@ -67,48 +81,40 @@ public class MainActivity extends AppCompatActivity implements ISearcherControl 
     }
 
     @Override
+    protected void onStop() {
+        super.onStop();
+        if (bound && connection != null) {
+            unbindService(connection);
+        }
+        bound = false;
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         if (state == null) state = OTAState.getInstance();
-        if (handler == null) {
-            handler = new Handler(Looper.getMainLooper()) {
-                @Override
-                public void handleMessage(Message msg) {
-                    StringBuilder result = new StringBuilder();
-                    Object o = msg.obj;
-                    switch (msg.what) {
-                        case BluetoothSearch.DEVICE_CONNECTING:
-//                        Toast.makeText(MainActivity.this, "Connecting to " + msg.obj, Toast.LENGTH_SHORT).show();
-                            setConnectionState(ConnectionState.CONNECTING);
-                            break;
-                        case BluetoothSearch.DEVICE_CONNECTED:
-                            Toast.makeText(MainActivity.this, "Connected to " + msg.obj, Toast.LENGTH_SHORT).show();
-                            setConnectionState(ConnectionState.CONNECTED);
-                            // TODO: Start Service? That handles control/threads?
-                            startMountService(bluetoothSearch.getClient());
-                            break;
-                        case BluetoothSearch.DEVICE_DISCONNECTED:
-                            Toast.makeText(MainActivity.this, "Disconnected from " + msg.obj, Toast.LENGTH_SHORT).show();
-                            setConnectionState(ConnectionState.DISCONNECTED);
-                            break;
-                        case BluetoothSearch.DEVICE_FAILED_DISCONNECT:
-//                        Toast.makeText(MainActivity.this, "Failed to disconnect from " + msg.obj, Toast.LENGTH_SHORT).show();
-                            setConnectionState(ConnectionState.UNKNOWN);
-                            break;
-                        case BluetoothSearch.DEVICE_FAILED:
-                            Toast.makeText(MainActivity.this, "Failed to connect to " + msg.obj, Toast.LENGTH_SHORT).show();
-                            setConnectionState(ConnectionState.FAILED);
-                            break;
-                    }
-                }
-            };
+
+        final ActivityManager activityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        final List<ActivityManager.RunningServiceInfo> services = activityManager.getRunningServices(Integer.MAX_VALUE);
+        boolean running = false;
+        for (ActivityManager.RunningServiceInfo runningServiceInfo : services) {
+            if (runningServiceInfo.service.getClassName().equals(BluetoothOTAService.class.getName())){
+                running = true;
+            }
         }
+        if (running) {
+            Intent bindIntent = new Intent(this, BluetoothOTAService.class);
+            bindService(bindIntent, connection, Context.BIND_AUTO_CREATE);
+        }
+        incomingMessenger = new Messenger(new OTAHandler(this));
     }
 
-    private void startMountService(BluetoothSocket client) {
-        Intent intent = new Intent(this, OTAService.class);
-        intent.putExtra("bluetooth-socket", client);
+    private void startMountService(BluetoothDevice device) {
+        Intent intent = new Intent(this, BluetoothOTAService.class);
+        intent.putExtra("bluetooth-device", device);
         startService(intent);
+        Intent bindIntent = new Intent(this, BluetoothOTAService.class);
+        bindService(bindIntent, connection, Context.BIND_AUTO_CREATE);
     }
 
     private void setConnectionState(ConnectionState newState) {
@@ -131,7 +137,7 @@ public class MainActivity extends AppCompatActivity implements ISearcherControl 
                 } else {
                     bluetoothSearch = new BluetoothSearch();
                 }
-                bluetoothSearch.setup(this, handler);
+                bluetoothSearch.setup(this);
                 IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
                 registerReceiver(bluetoothSearch.receiver, filter);
                 if (bluetoothDevices == null) {
@@ -194,8 +200,9 @@ public class MainActivity extends AppCompatActivity implements ISearcherControl 
                     if (!bluetoothSearch.hasBluetooth()) return;
                     Log.d(TAG, "onClick: attempting to connect");
                     if (device.getType().equalsIgnoreCase("bluetooth")) {
-                        bluetoothSearch.connectClient((BluetoothDevice) device.getDevice());
-
+                        // Start service to connect to OTA
+                        startMountService((BluetoothDevice) device.getDevice());
+//                        bluetoothSearch.connectClient((BluetoothDevice) device.getDevice());
                     } else {
                         Log.d(TAG, "onClick: Unknown device type");
                     }
@@ -222,7 +229,10 @@ public class MainActivity extends AppCompatActivity implements ISearcherControl 
     public void disconnect() {
         switch (connectionType) {
             case BLUETOOTH:
-                bluetoothSearch.disconnect();
+                Intent intent = new Intent(this, BluetoothOTAService.class);
+                stopService(intent);
+                unbindService(connection);
+                unregisterReceiver(bluetoothSearch.receiver);
                 break;
             default:
                 break;
@@ -243,13 +253,27 @@ public class MainActivity extends AppCompatActivity implements ISearcherControl 
     public void discover() {
         switch (connectionType) {
             case BLUETOOTH:
-                bluetoothSearch.disconnect();
+                Intent intent = new Intent(this, BluetoothOTAService.class);
+                stopService(intent);
                 bluetoothSearch.discoverDevices();
                 break;
             default:
                 Log.w(TAG, "discover: " + connectionType + " Not implemented");
                 break;
         }
+    }
+
+    @Override
+    public Messenger getMessenger() {
+        if (bound) {
+            return serviceMessenger;
+        }
+        return null;
+    }
+
+    @Override
+    public boolean isBound() {
+        return bound;
     }
 
     @Override
@@ -270,6 +294,98 @@ public class MainActivity extends AppCompatActivity implements ISearcherControl 
             default:
                 break;
         }
+    }
+
+    private final ServiceConnection connection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName className,
+                                       IBinder service) {
+            serviceMessenger = new Messenger(service);
+            bound = true;
+            Message msg = Message.obtain(null, SETUP_CLIENT_MESSENGER,0,0);
+            try {
+                // Important bit
+                msg.replyTo = incomingMessenger;
+                serviceMessenger.send(msg);
+            } catch (RemoteException e) {
+                // Service ended before setup
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            bound = false;
+        }
+    };
+
+
+    // TODO: implement all the mount messages
+    // EXAMPLE
+//    public void sendMoveRequest() {
+//        if (!bound) return;
+//        Bundle b = new Bundle();
+//        Message msg = Message.obtain(null, Mount.GET_DEC_STEPS_PER_DEG,0,0);
+//        try {
+//            // Important bit
+//            msg.replyTo = serviceMessenger;
+//            serviceMessenger.send(msg);
+//        } catch (RemoteException e) {
+//            // In this case the service has crashed before we could even
+//            // do anything with it; we can count on soon being
+//            // disconnected (and then reconnected if it can be restarted)
+//            // so there is no need to do anything here.
+//            setConnectionState(ConnectionState.DISCONNECTED);
+//        }
+//    }
+    static class OTAHandler extends Handler {
+
+        private final WeakReference<MainActivity> mActivity;
+
+        public OTAHandler(MainActivity activity) {
+            this.mActivity = new WeakReference<MainActivity>(activity);
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            Log.d(TAG, "OTAHandler: " + msg);
+            switch (msg.what) {
+                case BluetoothOTAService.DEVICE_CONNECTING:
+//                        Toast.makeText(MainActivity.this, "Connecting to " + msg.obj, Toast.LENGTH_SHORT).show();
+                    mActivity.get().setConnectionState(ConnectionState.CONNECTING);
+                    break;
+                case BluetoothOTAService.DEVICE_CONNECTED:
+                    Toast.makeText(mActivity.get(), "Connected to " + msg.obj, Toast.LENGTH_SHORT).show();
+                    mActivity.get().setConnectionState(ConnectionState.CONNECTED);
+                    break;
+                case BluetoothOTAService.DEVICE_DISCONNECTED:
+                    Log.d(TAG, "handleMessage: Failed to connect msg from service");
+                    Toast.makeText(mActivity.get(), "Disconnected from " + msg.obj, Toast.LENGTH_SHORT).show();
+                    unbindAndChangeState(ConnectionState.DISCONNECTED);
+                    break;
+                case BluetoothOTAService.DEVICE_FAILED_DISCONNECT:
+//                        Toast.makeText(MainActivity.this, "Failed to disconnect from " + msg.obj, Toast.LENGTH_SHORT).show();
+                    unbindAndChangeState(ConnectionState.UNKNOWN);
+                    break;
+                case BluetoothOTAService.DEVICE_FAILED:
+                    Toast.makeText(mActivity.get(), "Failed to connect to " + msg.obj, Toast.LENGTH_SHORT).show();
+                    unbindAndChangeState(ConnectionState.FAILED);
+                    break;
+                // Mount updates
+                case Mount.REFRESH_MOUNT_STATE:
+
+            }
+        }
+
+        private void unbindAndChangeState(ConnectionState state) {
+            if (mActivity.get().bound && mActivity.get().connection != null) {
+                mActivity.get().unbindService(mActivity.get().connection);
+            }
+            mActivity.get().bound = false;
+            mActivity.get().setConnectionState(state);
+        }
+
     }
 
 }

@@ -1,9 +1,6 @@
 package uk.co.mholeys.android.openastrotracker_control.ui.connection;
 
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,14 +19,11 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.util.HashSet;
 import java.util.Set;
 
 import uk.co.mholeys.android.openastrotracker_control.ISearcherControl;
 import uk.co.mholeys.android.openastrotracker_control.MountViewModel;
 import uk.co.mholeys.android.openastrotracker_control.R;
-import uk.co.mholeys.android.openastrotracker_control.comms.model.TelescopePosition;
-import uk.co.mholeys.android.openastrotracker_control.mount.Mount;
 
 public class ConnectionFragment extends Fragment {
 

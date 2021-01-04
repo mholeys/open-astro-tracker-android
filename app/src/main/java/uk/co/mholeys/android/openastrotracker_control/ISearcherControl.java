@@ -3,6 +3,7 @@ package uk.co.mholeys.android.openastrotracker_control;
 import android.app.Activity;
 import android.database.Observable;
 import android.os.Handler;
+import android.os.Messenger;
 
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.LiveData;
@@ -22,5 +23,8 @@ public interface ISearcherControl {
     public EConnectionType getType();
     public Handler getHandler();
     public void discover();
+
+    public Messenger getMessenger();
+    public boolean isBound();
 
 }

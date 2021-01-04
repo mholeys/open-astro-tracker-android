@@ -30,6 +30,7 @@
 
     <string name="bluetooth_sdp_uuid">00001101-0000-1000-8000-00805F9B34FB</string>
     <string name="bluetooth_uuid">9333ce44-2e18-4474-a7d1-bab7b8afd5a7</string>
+    <string name="disconnect">Disconnect</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string-array name="connection_types">
         <item>WiFi</item>

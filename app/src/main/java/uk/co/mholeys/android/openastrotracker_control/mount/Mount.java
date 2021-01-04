@@ -37,10 +37,7 @@ public class Mount {
         ota.start();
     }
 
-    // TODO: implement handler that takes results from all of these callbacks
-    // TODO:^possibly abstract to allow bluetooth/wifi/serial differences?
-
-    // TODO: implement all these messages in handler
+    // TODO: store current state here now!
     // TODO: finish parsing data in callbacks!
 
     public static final int REFRESH_MOUNT_STATE    = 1;
@@ -65,6 +62,8 @@ public class Mount {
     public static final int GET_RA_STEPS_PER_DEG   = 20;
     public static final int GET_DEC_STEPS_PER_DEG  = 21;
     public static final int GET_SPEED_FACTOR       = 22;
+
+    public static final int SYNC_POLARIS          = 23;
 
 //    private static final Handler bluetoothHandler = new Handler() {
 //        @Override
@@ -206,7 +205,7 @@ public class Mount {
         int latMin = (int) ((Math.abs(latitude) - latInt) * 60.0f);
         // Numerical response treat as full
         String command = String.format(":St%c%02d*%02d#", sgn, latInt, latMin);
-        ota.sendCommand(command, new OTAComms.CommandResponse() {
+        ota.sendCommand(command, new OTAComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
                 if (success) {
@@ -226,7 +225,7 @@ public class Mount {
         int lonMin = (int) ((longitude - lonInt) * 60.0f);
         // Numerical response treat as full
         String command = String.format(":Sg%03d*%02d#", lonInt, lonMin);
-        ota.sendCommand(command, new OTAComms.CommandResponse() {
+        ota.sendCommand(command, new OTAComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
                 if (success) {
@@ -239,11 +238,18 @@ public class Mount {
         });
     }
 
-    public class HMS {
+    public static class HMS {
         double h, m, s;
+
+        public HMS() {}
+        public HMS(double h, double m, double s) {
+            this.h = h;
+            this.m = m;
+            this.s = s;
+        }
     }
 
-    private void floatToHMS(double val, HMS hms) {
+    public static void floatToHMS(double val, HMS hms) {
         hms.h = (int) Math.floor(val);
         val = (val - hms.h) * 60;
         hms.m = (int) Math.floor(val);
@@ -251,12 +257,16 @@ public class Mount {
         hms.s = (int) Math.round(val);
     }
 
-    private double tryParseRA(String ra) {
+    public static double HMSToFloat(HMS hms) {
+        return hms.h + hms.m / 60d + hms.s / 60d;
+    }
+
+    public static double tryParseRA(String ra) {
         String[] parts = ra.split(":");
         return Integer.parseInt(parts[0]) + Integer.parseInt(parts[1]) / 60.0 + Integer.parseInt(parts[2]) / 3600.0;
     }
 
-    private double tryParseDec(String dec) {
+    public static double tryParseDec(String dec) {
         String[] parts = dec.split("\\*|\'");
         double dDec = Integer.parseInt(parts[0]) + Integer.parseInt(parts[1]) / 60.0;
         if (parts.length > 2) {
@@ -298,9 +308,10 @@ public class Mount {
         char sign = position.Declination < 0 ? '-' : '+';
         // Numerical response treat as full
         String command = String.format(":Sd%c%02d*%02d:%02d#", sign, deg, min, sec);
-        ota.sendCommand(command, new OTAComms.CommandResponse() {
+        ota.sendCommand(command, new OTAComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
+                Log.d(TAG, "slew result: " + result);
                 if (!success || !result.equals("1")) {
                     Message writtenMsg = handler.obtainMessage(Mount.SLEW, success ? 1 : 0, 0, result);
                     writtenMsg.sendToTarget();
@@ -315,9 +326,10 @@ public class Mount {
                 sec = (int) hms.s;
                 // Numerical response treat as full
                 String command2 = String.format(":Sr%02d:%02d:%02d#", hour, min, sec);
-                ota.sendCommand(command2, new OTAComms.CommandResponse() {
+                ota.sendCommand(command2, new OTAComms.NumericCommandResponse() {
                     @Override
                     public void result(boolean success2, String result2) {
+                        Log.d(TAG, "slew ra result: " + result2);
                         if (!success2 || !result2.equals("1")) {
                             Message writtenMsg = handler.obtainMessage(Mount.SLEW, success2 ? 1 : 0, 1, result2);
                             writtenMsg.sendToTarget();
@@ -325,11 +337,12 @@ public class Mount {
                         }
                         // Numerical response treat as full
                         String command3 = String.format(":MS#");
-                        ota.sendCommand(command3, new OTAComms.CommandResponse() {
+                        ota.sendCommand(command3, new OTAComms.NumericCommandResponse() {
                             @Override
                             public void result(boolean success3, String result3) {
                                 Message writtenMsg = handler.obtainMessage(Mount.SLEW, success3 ? 1 : 0, 2, result3);
                                 writtenMsg.sendToTarget();
+                                Log.d(TAG, "slewslew result: " + result3);
                             }
                         });
                     }
@@ -348,7 +361,7 @@ public class Mount {
         char sign = position.Declination < 0 ? '-' : '+';
         // Numerical response, treat as full
         String command = String.format(":Sd%c%02d*%02d:%02d#", sign, deg, min, sec);
-        ota.sendCommand(command, new OTAComms.CommandResponse() {
+        ota.sendCommand(command, new OTAComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
                 if (!success || result.equals("1")) {
@@ -364,7 +377,7 @@ public class Mount {
                 sec = (int) hms.s;
                 // Numerical response treat as full
                 String command2 = String.format(":Sr%02d:%02d:%02d#", hour, min, sec);
-                ota.sendCommand(command2, new OTAComms.CommandResponse() {
+                ota.sendCommand(command2, new OTAComms.NumericCommandResponse() {
                     @Override
                     public void result(boolean success2, String result2) {
                         if (!success2 || result2.equals("1")) {
@@ -383,6 +396,35 @@ public class Mount {
         });
     }
 
+    public void syncPolaris(final TelescopePosition position) {
+        int ddeg, dmin, dsec;
+        int rhour, rmin, rsec;
+        HMS hms = new HMS();
+        floatToHMS(Math.abs(position.Declination), hms);
+        ddeg = (int) hms.h;
+        dmin = (int) hms.m;
+        dsec = (int) hms.s;
+
+        floatToHMS(Math.abs(position.RightAscension), hms);
+        rhour = (int) hms.h;
+        rmin = (int) hms.m;
+        rsec = (int) hms.s;
+
+        char dsign = position.Declination < 0 ? '-' : '+';
+        // Numerical response, treat as full
+        String command = String.format(":SY%c%02d*%02d:%02d.%02d:%02d:%02d#", dsign, ddeg, dmin, dsec, rhour, rmin, rsec);
+        ota.sendCommand(command, new OTAComms.NumericCommandResponse() {
+            @Override
+            public void result(boolean success, String result) {
+                if (!success || result.equals("1")) {
+                    Message writtenMsg = handler.obtainMessage(Mount.SYNC_POLARIS, success ? 1 : 0, 0, result);
+                    writtenMsg.sendToTarget();
+                    return;
+                }
+            }
+        });
+    }
+
     public void goHome() {
         boolean success = ota.sendBlindCommand(":hP#");
         Message writtenMsg = handler.obtainMessage(Mount.GO_HOME, success ? 1 : 0, 0, null);
@@ -391,7 +433,7 @@ public class Mount {
 
     public void setHome() {
         // Numerical response, treat as full
-        ota.sendCommand(":SHP#", new OTAComms.CommandResponse() {
+        ota.sendCommand(":SHP#", new OTAComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
                 // Todo:
@@ -427,10 +469,11 @@ public class Mount {
     public void setTracking(final boolean enabled) {
         int b = enabled ? 1 : 0;
         // Numerical response, treat as full
-        ota.sendCommand(":MT%d#", new OTAComms.CommandResponse() {
+        ota.sendCommand(":MT" + b + "#", new OTAComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
 //              MountState.setTracking(enabled);
+                Log.d(TAG, "result: " + result);
                 Message writtenMsg = handler.obtainMessage(Mount.SET_TRACKING, success ? 1 : 0, 0, result);
                 writtenMsg.sendToTarget();
                 // TODO: return success;
@@ -449,7 +492,7 @@ public class Mount {
         int lonBack = (int) ((lon - lonFront) * 60);
         // Numerical response, treat as full
         String lonCmd = String.format(":Sg%03d*%02d#", lonFront, lonBack);
-        ota.sendCommand(lonCmd, new OTAComms.CommandResponse() {
+        ota.sendCommand(lonCmd, new OTAComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
 
@@ -465,7 +508,7 @@ public class Mount {
         int latBack = (int) ((absLat - latFront) * 60.0);
         // Numerical response, treat as full
         String latCmd = String.format(":St%c%02d*%02d#", latSign, latFront, latBack);
-        ota.sendCommand(latCmd, new OTAComms.CommandResponse() {
+        ota.sendCommand(latCmd, new OTAComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
 
@@ -482,7 +525,7 @@ public class Mount {
         int offset = Math.abs(hours);
         // Numerical response, treat as full
         String tzCommand = String.format(":SG%c%02d#", offsetSign, offset);
-        ota.sendCommand(tzCommand, new OTAComms.CommandResponse() {
+        ota.sendCommand(tzCommand, new OTAComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
 
@@ -500,7 +543,7 @@ public class Mount {
         int yy = c.get(Calendar.YEAR);
         // Numerical response, treat as full
         String timeCommand = String.format(":SL:%02d:%02d:%02d#", h, m, s);
-        ota.sendCommand(timeCommand, new OTAComms.CommandResponse() {
+        ota.sendCommand(timeCommand, new OTAComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
 
@@ -534,7 +577,7 @@ public class Mount {
 
     public void unpark() {
         // Numerical response, treating as full
-        ota.sendCommand(":hU#", new OTAComms.CommandResponse() {
+        ota.sendCommand(":hU#", new OTAComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
                 Log.d(TAG, "unparkResult: " + success + " " + result);

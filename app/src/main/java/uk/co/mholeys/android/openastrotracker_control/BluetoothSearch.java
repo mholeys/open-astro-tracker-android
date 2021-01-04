@@ -30,12 +30,6 @@ public class BluetoothSearch {
 
     public static final int REQUEST_ENABLE_BT = 0x19FF;
 
-    public static final int DEVICE_CONNECTED = 0x222001;
-    public static final int DEVICE_DISCONNECTED = 0x222002;
-    public static final int DEVICE_FAILED = 0x222003;
-    public static final int DEVICE_FAILED_DISCONNECT = 0x222004;
-    public static final int DEVICE_CONNECTING = 0x222005;
-
     private static final String TAG = "BluetoothSearch";
     private boolean bluetooth = false;
     private Activity activity;
@@ -43,24 +37,15 @@ public class BluetoothSearch {
 
     public MutableLiveData<Set<BluetoothDevice>> obsDevices = new MutableLiveData<>();
     private Set<BluetoothDevice> devices = new HashSet<>();
-    private ConnectThread connectThread;
-    private BluetoothSocket client;
-    private BluetoothDevice device;
-    private Mount mount;
 
-//    public Handler bluetoothHandler;
-    public Handler handler;
-    //    public MountBluetoothConnectionService service;
-    private static final int GET_RA_STEPS_PER_DEG = 1;
 
-    public void setup(Activity activity, Handler handler) {
+    public void setup(Activity activity) {
         this.activity = activity;
-        this.handler = handler;
         obsDevices.postValue(devices);
 
         adapter = BluetoothAdapter.getDefaultAdapter();
         if (adapter == null) {
-            // Handle no bluetooth on device
+            // Handle no bluetooth on phone
             bluetooth = false;
             return;
         }
@@ -93,37 +78,34 @@ public class BluetoothSearch {
         }
     }
 
-    private void onConnected(BluetoothSocket client) {
-        this.client = client;
-        Log.d(TAG, "onConnected: Connected");
-        Message writtenMsg = handler.obtainMessage(DEVICE_CONNECTED, -0, -1, device.getName());
-        writtenMsg.sendToTarget();
+//    private void onConnected(BluetoothSocket client) {
+//        this.client = client;
+//        Log.d(TAG, "onConnected: Connected");
+//        Message writtenMsg = handler.obtainMessage(DEVICE_CONNECTED, -0, -1, device.getName());
+//        writtenMsg.sendToTarget();
+//
+//        // Start processing data
+////        service = new MountBluetoothConnectionService(client, bluetoothHandler);
+////        disconnect();
+//    }
 
-        // Start processing data
-//        service = new MountBluetoothConnectionService(client, bluetoothHandler);
-//        disconnect();
-    }
-
-    public void disconnect() {
-        if (mount != null) {
-            mount.close();
-        }
-        if (client != null) {
-            boolean wasConnected = client.isConnected();
-            try {
-                client.close();
-                Log.d(TAG, "disconnected");
-                if (wasConnected) {
-                    Message writtenMsg = handler.obtainMessage(DEVICE_DISCONNECTED, -0, -1, device.getName());
-                    writtenMsg.sendToTarget();
-                }
-            } catch (IOException e) {
-                Message writtenMsg = handler.obtainMessage(DEVICE_FAILED_DISCONNECT, -0, -1, device.getName());
-                writtenMsg.sendToTarget();
-                e.printStackTrace();
-            }
-        }
-    }
+//    public void disconnect() {
+//        if (client != null) {
+//            boolean wasConnected = client.isConnected();
+//            try {
+//                client.close();
+//                Log.d(TAG, "disconnected");
+//                if (wasConnected) {
+//                    Message writtenMsg = handler.obtainMessage(DEVICE_DISCONNECTED, -0, -1, device.getName());
+//                    writtenMsg.sendToTarget();
+//                }
+//            } catch (IOException e) {
+//                Message writtenMsg = handler.obtainMessage(DEVICE_FAILED_DISCONNECT, -0, -1, device.getName());
+//                writtenMsg.sendToTarget();
+//                e.printStackTrace();
+//            }
+//        }
+//    }
 
     public final BroadcastReceiver receiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -152,81 +134,8 @@ public class BluetoothSearch {
         return bluetooth;
     }
 
-    public void connectClient(BluetoothDevice device) {
-        if (!bluetooth) return;
-        if (connectThread != null) {
-            connectThread.cancel();
-        }
-        Log.d(TAG, "connectClient: Connecting");
-        UUID id = UUID.fromString(activity.getString(R.string.bluetooth_sdp_uuid));
-        connectThread = new ConnectThread(device, id);
-        connectThread.start();
-        this.device = device;
-    }
-
     public void refresh() {
         obsDevices.postValue(devices);
-    }
-
-    private class ConnectThread extends Thread {
-        private final BluetoothSocket mmSocket;
-        private final BluetoothDevice mmDevice;
-
-        public ConnectThread(BluetoothDevice device, UUID id) {
-            // Use a temporary object that is later assigned to mmSocket
-            // because mmSocket is final.
-            BluetoothSocket tmp = null;
-            mmDevice = device;
-
-            try {
-                // Get a BluetoothSocket to connect with the given BluetoothDevice.
-                // MY_UUID is the app's UUID string, also used in the server code.
-                tmp = device.createRfcommSocketToServiceRecord(id);
-            } catch (IOException e) {
-                Log.e(TAG, "Socket's create() method failed", e);
-            }
-            mmSocket = tmp;
-        }
-
-        public void run() {
-            // Cancel discovery because it otherwise slows down the connection.
-            adapter.cancelDiscovery();
-
-            try {
-                // Connect to the remote device through the socket. This call blocks
-                // until it succeeds or throws an exception.
-                mmSocket.connect();
-            } catch (IOException connectException) {
-                // Unable to connect; close the socket and return.
-                Log.d(TAG, "run: Could not connect");
-                try {
-                    mmSocket.close();
-                } catch (IOException closeException) {
-                    Log.e(TAG, "Could not close the client socket", closeException);
-                }
-                Message writtenMsg = handler.obtainMessage(DEVICE_FAILED, -0, -1, device.getName());
-                writtenMsg.sendToTarget();
-                return;
-            }
-
-            // The connection attempt succeeded. Perform work associated with
-            // the connection in a separate thread.
-            Log.d(TAG, "run: Connected! got socket");
-            onConnected(mmSocket);
-        }
-
-        // Closes the client socket and causes the thread to finish.
-        public void cancel() {
-            try {
-                mmSocket.close();
-                Message writtenMsg = handler.obtainMessage(DEVICE_DISCONNECTED, -0, -1, device.getName());
-                writtenMsg.sendToTarget();
-            } catch (IOException e) {
-                Log.e(TAG, "Could not close the client socket", e);
-                Message writtenMsg = handler.obtainMessage(DEVICE_FAILED_DISCONNECT, -0, -1, device.getName());
-                writtenMsg.sendToTarget();
-            }
-        }
     }
 
     public void addSavedDevices(ArrayList<Parcelable> parcelables) {
@@ -241,10 +150,6 @@ public class BluetoothSearch {
     public boolean isBluetoothEnabled() {
         if (adapter == null) return false;
         return adapter.isEnabled();
-    }
-
-    public BluetoothSocket getClient() {
-        return client;
     }
 
 }
