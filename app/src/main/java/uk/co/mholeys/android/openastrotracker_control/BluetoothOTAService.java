@@ -199,6 +199,7 @@ public class BluetoothOTAService extends Service {
 
         try {
             mount = new Mount(client, mountHandler);
+
             statusRunnable = new StatusRunnable(mount);
             ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 //            statusRunnableFuture = executor.scheduleAtFixedRate(statusRunnable, 0, 100, TimeUnit.MILLISECONDS);
@@ -417,6 +418,8 @@ public class BluetoothOTAService extends Service {
                 case Mount.GET_SPEED_FACTOR:
                     mount.getSpeedFactor();
                     break;
+                case Mount.MOVE_SLIGHTLY:
+                    mount.moveSlightly((char) msg.arg1, msg.arg2);
                 default:
                     break;
             }

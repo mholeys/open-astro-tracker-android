@@ -4,8 +4,10 @@ import android.app.Dialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Messenger;
+import android.os.Parcelable;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -17,6 +19,11 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import uk.co.mholeys.android.openastrotracker_control.ISearcherControl;
 import uk.co.mholeys.android.openastrotracker_control.MountViewModel;
@@ -143,6 +150,10 @@ public class ControlFragment extends Fragment {
         }
     };
 
+    ScheduledExecutorService movementExecutor;
+    private ScheduledFuture<?> movementRunnableFuture;
+    private MovementRunnable movementRunnable;
+
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_control, container, false);
@@ -162,35 +173,92 @@ public class ControlFragment extends Fragment {
             }
         });
         mTrackingStateView = root.findViewById(R.id.tracking_text);
+        movementExecutor = Executors.newSingleThreadScheduledExecutor();
 
         mMoveUpButton = root.findViewById(R.id.move_up_btn);
-        mMoveUpButton.setOnClickListener(new View.OnClickListener() {
+        mMoveUpButton.setOnTouchListener(new View.OnTouchListener() {
             @Override
-            public void onClick(View v) {
-                onUpClick(v);
+            public boolean onTouch(View v, MotionEvent event) {
+                if(event.getAction() == MotionEvent.ACTION_DOWN) {
+                    move('N');
+                    return true;
+                }
+                if(event.getAction() == MotionEvent.ACTION_UP) {
+                    stopMovement();
+                    return true;
+                }
+                return false;
             }
         });
+//        mMoveUpButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                onUpClick(v);
+//            }
+//        });
         mMoveLeftButton = root.findViewById(R.id.move_left_btn);
-        mMoveLeftButton.setOnClickListener(new View.OnClickListener() {
+        mMoveLeftButton.setOnTouchListener(new View.OnTouchListener() {
             @Override
-            public void onClick(View v) {
-                onLeftClick(v);
+            public boolean onTouch(View v, MotionEvent event) {
+                if(event.getAction() == MotionEvent.ACTION_DOWN) {
+                    move('W');
+                    return true;
+                }
+                if(event.getAction() == MotionEvent.ACTION_UP) {
+                    stopMovement();
+                    return true;
+                }
+                return false;
             }
         });
+//        mMoveLeftButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                onLeftClick(v);
+//            }
+//        });
         mMoveDownButton = root.findViewById(R.id.move_down_btn);
-        mMoveDownButton.setOnClickListener(new View.OnClickListener() {
+        mMoveDownButton.setOnTouchListener(new View.OnTouchListener() {
             @Override
-            public void onClick(View v) {
-                onDownClick(v);
+            public boolean onTouch(View v, MotionEvent event) {
+                if(event.getAction() == MotionEvent.ACTION_DOWN) {
+                    move('S');
+                    return true;
+                }
+                if(event.getAction() == MotionEvent.ACTION_UP) {
+                    stopMovement();
+                    return true;
+                }
+                return false;
             }
         });
+//        mMoveDownButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                onDownClick(v);
+//            }
+//        });
         mMoveRightButton = root.findViewById(R.id.move_right_btn);
-        mMoveRightButton.setOnClickListener(new View.OnClickListener() {
+        mMoveRightButton.setOnTouchListener(new View.OnTouchListener() {
             @Override
-            public void onClick(View v) {
-                onRightClick(v);
+            public boolean onTouch(View v, MotionEvent event) {
+                if(event.getAction() == MotionEvent.ACTION_DOWN) {
+                    move('E');
+                    return true;
+                }
+                if(event.getAction() == MotionEvent.ACTION_UP) {
+                    stopMovement();
+                    return true;
+                }
+                return false;
             }
         });
+//        mMoveRightButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                onRightClick(v);
+//            }
+//        });
 
         mHomeButton = root.findViewById(R.id.home_btn);
         mHomeButton.setOnClickListener(new View.OnClickListener() {
@@ -267,18 +335,22 @@ public class ControlFragment extends Fragment {
     //Buttons
     public void onUpClick(View view) {
         if (!isBound()) return;
+        MountMessages.moveSlightly(serviceMessenger, 'N', 50);
     }
 
     public void onDownClick(View view) {
         if (!isBound()) return;
+        MountMessages.moveSlightly(serviceMessenger, 'S', 50);
     }
 
     public void onLeftClick(View view) {
         if (!isBound()) return;
+        MountMessages.moveSlightly(serviceMessenger, 'W', 50);
     }
 
     public void onRightClick(View view) {
         if (!isBound()) return;
+        MountMessages.moveSlightly(serviceMessenger, 'E', 50);
     }
 
     public void onStopTrackingClick(View view) {
@@ -309,5 +381,44 @@ public class ControlFragment extends Fragment {
         if (!isBound()) return;
         control.disconnect();
     }
-    
+
+
+    private void stopMovement() {
+        if (movementRunnableFuture != null && !movementRunnableFuture.isCancelled()) {
+            movementRunnableFuture.cancel(true);
+        }
+    }
+
+    private void move(char direction) {
+        stopMovement();
+        if (movementRunnable == null) {
+            movementRunnable = new MovementRunnable(direction);
+        } else {
+            movementRunnable.direction = direction;
+        }
+        movementRunnable = new MovementRunnable(direction);
+        movementRunnableFuture = movementExecutor.scheduleAtFixedRate(movementRunnable, 0, MovementRunnable.DEFAULT_DURATION, TimeUnit.MILLISECONDS);
+    }
+
+
+    class MovementRunnable implements Runnable {
+
+        public static final int DEFAULT_DURATION = 200;
+
+        char direction;
+        int duration = DEFAULT_DURATION;
+
+        public MovementRunnable(char direction) {
+            this.direction = direction;
+        }
+
+        public void run() {
+            /* TODO switch to calculating offset from current target location, and move to that instead
+             * TODO That way it will move faster, this is way too slow of movement
+             */
+            MountMessages.moveSlightly(serviceMessenger, direction, duration);
+        }
+
+    }
+
 }

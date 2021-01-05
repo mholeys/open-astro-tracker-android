@@ -199,6 +199,15 @@ public class MountMessages {
         }
     }
 
+    public static void moveSlightly(Messenger target, char direction, int duration) {
+        Bundle b = new Bundle();
+        Message msg = Message.obtain(null, Mount.MOVE_SLIGHTLY, direction, duration);
+        try {
+            target.send(msg);
+        } catch (RemoteException e) {
+        }
+    }
+
     private static int fromBool(boolean v) {
         return v ? 1 : 0;
     }
