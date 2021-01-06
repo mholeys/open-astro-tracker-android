@@ -39,16 +39,6 @@ public class Mount {
         ota.start();
     }
 
-    MutableLiveData<TelescopePosition> currentPosition = new MutableLiveData<>();
-    MutableLiveData<TelescopePosition> objectPosition = new MutableLiveData<>();
-    MutableLiveData<Boolean> trackingState = new MutableLiveData<>();
-    MutableLiveData<Float> siteLatitude = new MutableLiveData<>();
-    MutableLiveData<Float> siteLongitude = new MutableLiveData<>();
-    MutableLiveData<Integer> raStepsPerDeg = new MutableLiveData<>();
-    MutableLiveData<Integer> decStepsPerDeg = new MutableLiveData<>();
-    MutableLiveData<Float> speedFactor = new MutableLiveData<>();
-
-    // TODO: store current state here now!
     // TODO: finish parsing data in callbacks!
 
     public static final int REFRESH_MOUNT_STATE    = 1;
@@ -88,6 +78,7 @@ public class Mount {
 //    };
 
 
+    // TODO: incomplete
     public void refreshMountState() {
         // Full response
         ota.sendCommand(":GX#", new OTAComms.CommandResponse() {
@@ -161,7 +152,6 @@ public class Mount {
                             dRa = tryParseRA(newRA);
                             dDec = tryParseDec(newDEC);
                             TelescopePosition pos = new TelescopePosition(dRa, dDec, OTAEpoch.JNOW);
-                            currentPosition.postValue(pos);
                             Message writtenMsg = handler.obtainMessage(Mount.GET_POSITION, -0, -1, pos);
                             writtenMsg.sendToTarget();
                         } catch (Exception e) {
@@ -182,7 +172,6 @@ public class Mount {
                 if (success) {
                     Log.d(TAG, "getSiteLat: got" + result);
                     float lat = (float) tryParseDec(result);
-                    siteLatitude.postValue(lat);
                     Message writtenMsg = handler.obtainMessage(Mount.GET_SITE_LATITUDE, success ? 1 : 0, 0, lat);
                     writtenMsg.sendToTarget();
                 } else {
@@ -204,8 +193,7 @@ public class Mount {
                     if (lon > 180) {
                         lon -= 360;
                     }
-                    siteLongitude.postValue((float) lon);
-                    Message writtenMsg = handler.obtainMessage(Mount.GET_SITE_LONGITUDE, success ? 1 : 0, 0, lon);
+                    Message writtenMsg = handler.obtainMessage(Mount.GET_SITE_LONGITUDE, success ? 1 : 0, 0, (float) lon);
                     writtenMsg.sendToTarget();
                 } else {
                     // 0
@@ -217,7 +205,7 @@ public class Mount {
 
     public void setSiteLatitude(final float latitude) {
         char sgn = latitude < 0 ? '-' : '+';
-        int latInt = (int) Math.abs(latitude);
+        final int latInt = (int) Math.abs(latitude);
         int latMin = (int) ((Math.abs(latitude) - latInt) * 60.0f);
         // Numerical response treat as full
         String command = String.format(":St%c%02d*%02d#", sgn, latInt, latMin);
@@ -225,9 +213,8 @@ public class Mount {
             @Override
             public void result(boolean success, String result) {
                 if (success && result.equals("1")) {
-                    Message writtenMsg = handler.obtainMessage(Mount.SET_SITE_LATITUDE, success ? 1 : 0, 0, result);
+                    Message writtenMsg = handler.obtainMessage(Mount.SET_SITE_LATITUDE, success ? 1 : 0, 0, latitude);
                     writtenMsg.sendToTarget();
-                    siteLatitude.postValue(latitude);
 //                    return lat.data;
                 } else {
                     // Unknown state so get the value the mount is using
@@ -248,8 +235,7 @@ public class Mount {
             @Override
             public void result(boolean success, String result) {
                 if (success && result.equals("1")) {
-                    siteLongitude.postValue(finalLongitude);
-                    Message writtenMsg = handler.obtainMessage(Mount.SET_SITE_LONGITUDE, success ? 1 : 0, 0, result);
+                    Message writtenMsg = handler.obtainMessage(Mount.SET_SITE_LONGITUDE, success ? 1 : 0, 0, finalLongitude);
                     writtenMsg.sendToTarget();
                 } else {
                     // Unknown state so get the value the mount is using
@@ -352,7 +338,7 @@ public class Mount {
                     public void result(boolean success2, String result2) {
                         Log.d(TAG, "slew ra result: " + result2);
                         if (!success2 || !result2.equals("1")) {
-                            Message writtenMsg = handler.obtainMessage(Mount.SLEW, result2.equals("1") ? 1 : 0, 1, result2);
+                            Message writtenMsg = handler.obtainMessage(Mount.SLEW, 0, 1, result2);
                             writtenMsg.sendToTarget();
                             getPosition();
                             return;
@@ -393,7 +379,7 @@ public class Mount {
             @Override
             public void result(boolean success, String result) {
                 if (!success || result.equals("1")) {
-                    Message writtenMsg = handler.obtainMessage(Mount.SYNC, success ? 1 : 0, 0, result);
+                    Message writtenMsg = handler.obtainMessage(Mount.SYNC, 0, 0, result);
                     writtenMsg.sendToTarget();
                     return;
                 }
@@ -409,14 +395,13 @@ public class Mount {
                     @Override
                     public void result(boolean success2, String result2) {
                         if (!success2 || result2.equals("1")) {
-                            Message writtenMsg = handler.obtainMessage(Mount.SYNC, success2 ? 1 : 0, 0, result2);
+                            Message writtenMsg = handler.obtainMessage(Mount.SYNC, 0, 0, result2);
                             writtenMsg.sendToTarget();
                             return;
                         }
                         // Blind, no response
                         boolean success3 = ota.sendBlindCommand(":CM#");
-                        objectPosition.postValue(position);
-                        Message writtenMsg = handler.obtainMessage(Mount.SYNC, success3 ? 1 : 0, 0, null);
+                        Message writtenMsg = handler.obtainMessage(Mount.SYNC, success3 ? 1 : 0, 0, position);
                         writtenMsg.sendToTarget();
                     }
                 });
@@ -446,10 +431,12 @@ public class Mount {
             @Override
             public void result(boolean success, String result) {
                 if (!success || result.equals("1")) {
-                    Message writtenMsg = handler.obtainMessage(Mount.SYNC_POLARIS, success ? 1 : 0, 0, result);
+                    Message writtenMsg = handler.obtainMessage(Mount.SYNC_POLARIS, 0, 0, result);
                     writtenMsg.sendToTarget();
                     return;
                 }
+                Message writtenMsg = handler.obtainMessage(Mount.SYNC_POLARIS, success ? 1 : 0, 0, position);
+                writtenMsg.sendToTarget();
             }
         });
     }
@@ -488,7 +475,7 @@ public class Mount {
                     writtenMsg.sendToTarget();
                 } else {
                     Log.e(TAG, "getHA: failed");
-                    Message writtenMsg = handler.obtainMessage(Mount.GET_HA, success ? 1 : 0, 0, result);
+                    Message writtenMsg = handler.obtainMessage(Mount.GET_HA, 0, 0, result);
                     writtenMsg.sendToTarget();
                 }
             }
@@ -503,17 +490,18 @@ public class Mount {
             public void result(boolean success, String result) {
 //              MountState.setTracking(enabled);
                 Log.d(TAG, "result: " + result);
+                int state = 0;
                 if (result.equals("1")) {
-                    trackingState.postValue(enabled);
+                    state = 1;
                 }
-                Message writtenMsg = handler.obtainMessage(Mount.SET_TRACKING, success ? 1 : 0, 0, result);
+                Message writtenMsg = handler.obtainMessage(Mount.SET_TRACKING, success ? 1 : 0, state, result);
                 writtenMsg.sendToTarget();
-                // TODO: return success;
             }
         });
     }
 
-    public void setLocation(double lat, double lon, double altitudeInMeters, double lstInHours) {
+    // TODO: finish and make public
+    private void setLocation(double lat, double lon, double altitudeInMeters, double lstInHours) {
 
         // Longitude
         setSiteLongitude((float) lon);
@@ -651,14 +639,14 @@ public class Mount {
         ota.sendCommand(":XGR#", new OTAComms.CommandResponse() {
             @Override
             public void result(boolean success, String result) {
-                // TODO:
                 Log.d(TAG, "getRAStepsPerDegreeResult: " + success + " " + result);
+                int steps = -1;
                 try {
-                    raStepsPerDeg.postValue(Integer.parseInt(result));
+                    steps = Integer.parseInt(result);
                 } catch (NumberFormatException e) {
                     Log.e(TAG, "getRaStepsPerDegree: Failed to parse ra steps " + result);
                 }
-                Message writtenMsg = handler.obtainMessage(Mount.GET_RA_STEPS_PER_DEG, success ? 1 : 0, 0, result);
+                Message writtenMsg = handler.obtainMessage(Mount.GET_RA_STEPS_PER_DEG, success ? 1 : 0, steps, result);
                 writtenMsg.sendToTarget();
             }
         });
@@ -670,12 +658,13 @@ public class Mount {
             @Override
             public void result(boolean success, String result) {
                 Log.d(TAG, "getDECStepsPerDegreeResult: " + success + " " + result);
+                int steps = -1;
                 try {
-                    decStepsPerDeg.postValue(Integer.parseInt(result));
+                    steps = Integer.parseInt(result);
                 } catch (NumberFormatException e) {
                     Log.e(TAG, "getDecStepsPerDegree: Failed to parse dec steps " + result);
                 }
-                Message writtenMsg = handler.obtainMessage(Mount.GET_DEC_STEPS_PER_DEG, success ? 1 : 0, 0, result);
+                Message writtenMsg = handler.obtainMessage(Mount.GET_DEC_STEPS_PER_DEG, success ? 1 : 0, steps, result);
                 writtenMsg.sendToTarget();
             }
         });
@@ -687,12 +676,13 @@ public class Mount {
             @Override
             public void result(boolean success, String result) {
                 Log.d(TAG, "getSpeedFactorResult: " + success + " " + result);
+                float speedFactor = -1;
                 try {
-                    speedFactor.postValue(Float.parseFloat(result));
+                    speedFactor = Float.parseFloat(result);
                 } catch (NumberFormatException e) {
                     Log.e(TAG, "getSpeedFactor: Failed to parse speed factor " + result);
                 }
-                Message writtenMsg = handler.obtainMessage(Mount.GET_SPEED_FACTOR, success ? 1 : 0, 0, result);
+                Message writtenMsg = handler.obtainMessage(Mount.GET_SPEED_FACTOR, success ? 1 : 0, 0, speedFactor);
                 writtenMsg.sendToTarget();
             }
         });

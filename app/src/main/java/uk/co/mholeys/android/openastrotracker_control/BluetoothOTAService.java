@@ -76,60 +76,66 @@ public class BluetoothOTAService extends Service {
             @Override
             public void handleMessage(@NonNull Message msg) {
                 super.handleMessage(msg);
-                Log.d(TAG, "mountHandler: " + msg);
-                Object o = msg.obj;
-                switch (msg.what) {
-                    case Mount.REFRESH_MOUNT_STATE:
-                        break;
-                    case Mount.GET_POSITION:
-                        Log.d(TAG, "handleMessage: GET_POSITION");
-                        if (o instanceof TelescopePosition) {
-                            TelescopePosition pos = (TelescopePosition) o;
-                            Log.d(TAG, "handleMessage: RA " + pos.RightAscension + " DEC " + pos.Declination + " EPOCH " + pos.epoch);
-
-                        }
-                        break;
-                    case Mount.GET_SITE_LATITUDE:
-                        break;
-                    case Mount.GET_SITE_LONGITUDE:
-                        break;
-                    case Mount.SET_SITE_LATITUDE:
-                        break;
-                    case Mount.SET_SITE_LONGITUDE:
-                        break;
-                    case Mount.START_MOVING:
-                        break;
-                    case Mount.SLEW:
-                        break;
-                    case Mount.SYNC:
-                        break;
-                    case Mount.GO_HOME:
-                        break;
-                    case Mount.SET_HOME:
-                        break;
-                    case Mount.GET_HA:
-                        break;
-                    case Mount.SET_TRACKING:
-                        break;
-                    case Mount.SET_LOCATION:
-                        break;
-                    case Mount.PARK:
-                        break;
-                    case Mount.UNPARK:
-                        break;
-                    case Mount.STOP_SLEWING:
-                        break;
-                    case Mount.START_SLEWING:
-                        break;
-                    case Mount.GET_RA_STEPS_PER_DEG:
-                        break;
-                    case Mount.GET_DEC_STEPS_PER_DEG:
-                        break;
-                    case Mount.GET_SPEED_FACTOR:
-                        break;
-                    default:
-                        break;
+                Message toClient = Message.obtain(msg);
+                toClient.setTarget(null);
+                try {
+                    clientMessenger.send(toClient);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
                 }
+//                Log.d(TAG, "mountHandler: " + msg);
+//                Object o = msg.obj;
+//                switch (msg.what) {
+//                    case Mount.REFRESH_MOUNT_STATE:
+//                        break;
+//                    case Mount.GET_POSITION:
+//                        Log.d(TAG, "handleMessage: GET_POSITION");
+//                        if (o instanceof TelescopePosition) {
+//                            TelescopePosition pos = (TelescopePosition) o;
+//                            Log.d(TAG, "handleMessage: RA " + pos.RightAscension + " DEC " + pos.Declination + " EPOCH " + pos.epoch);
+//                        }
+//                        break;
+//                    case Mount.GET_SITE_LATITUDE:
+//                        break;
+//                    case Mount.GET_SITE_LONGITUDE:
+//                        break;
+//                    case Mount.SET_SITE_LATITUDE:
+//                        break;
+//                    case Mount.SET_SITE_LONGITUDE:
+//                        break;
+//                    case Mount.START_MOVING:
+//                        break;
+//                    case Mount.SLEW:
+//                        break;
+//                    case Mount.SYNC:
+//                        break;
+//                    case Mount.GO_HOME:
+//                        break;
+//                    case Mount.SET_HOME:
+//                        break;
+//                    case Mount.GET_HA:
+//                        break;
+//                    case Mount.SET_TRACKING:
+//                        break;
+//                    case Mount.SET_LOCATION:
+//                        break;
+//                    case Mount.PARK:
+//                        break;
+//                    case Mount.UNPARK:
+//                        break;
+//                    case Mount.STOP_SLEWING:
+//                        break;
+//                    case Mount.START_SLEWING:
+//                        break;
+//                    case Mount.GET_RA_STEPS_PER_DEG:
+//                        break;
+//                    case Mount.GET_DEC_STEPS_PER_DEG:
+//                        break;
+//                    case Mount.GET_SPEED_FACTOR:
+//                        break;
+//                    default:
+//                        break;
+//                }
 
             }
         };
@@ -205,7 +211,7 @@ public class BluetoothOTAService extends Service {
 
             statusRunnable = new StatusRunnable(mount);
             ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-            statusRunnableFuture = executor.scheduleAtFixedRate(statusRunnable, 0, 100, TimeUnit.MILLISECONDS);
+//            statusRunnableFuture = executor.scheduleAtFixedRate(statusRunnable, 0, 100, TimeUnit.MILLISECONDS);
 
             // TODO: to communicate from now on, this needs to be a BoundService
             // TODO: See https://developer.android.com/guide/components/bound-services
@@ -339,7 +345,7 @@ public class BluetoothOTAService extends Service {
             Bundle b = msg.getData();
             TelescopePosition pos = null;
             switch (msg.what) {
-                case MainActivity.SETUP_CLIENT_MESSENGER:
+                case MountViewModel.SETUP_CLIENT_MESSENGER:
                     clientMessenger = msg.replyTo;
                     Log.d(TAG, "handleMessage: Setup client messenger");
                     break;

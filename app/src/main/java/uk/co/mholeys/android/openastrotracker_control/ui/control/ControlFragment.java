@@ -18,6 +18,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
 import java.util.concurrent.Executors;
@@ -58,7 +59,6 @@ public class ControlFragment extends Fragment {
     TextView mCurrentDECText;
 
     private MountViewModel mountViewModel;
-    private ISearcherControl control;
     private Messenger serviceMessenger;
 
     private PolarAlignmentDialogFragment.PolarAlignListener polarAlignmentListener = new PolarAlignmentDialogFragment.PolarAlignListener() {
@@ -174,6 +174,7 @@ public class ControlFragment extends Fragment {
             }
         });
         mTrackingStateView = root.findViewById(R.id.tracking_text);
+
         movementExecutor = Executors.newSingleThreadScheduledExecutor();
 
         mMoveUpButton = root.findViewById(R.id.move_up_btn);
@@ -319,18 +320,37 @@ public class ControlFragment extends Fragment {
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        if (getActivity() instanceof ISearcherControl) {
-            control = (ISearcherControl) getActivity();
-            this.serviceMessenger = control.getMessenger();
-        } else {
-            Log.e(TAG, "onActivityCreated: Activity doesn't implement ISearcherControl!");
-        }
+        mountViewModel = MountViewModel.getInstance(this);
+        this.serviceMessenger = mountViewModel.getMessenger();
 
-        mountViewModel = new ViewModelProvider(this).get(MountViewModel.class);
+        mountViewModel.getTrackingState().observe(getViewLifecycleOwner(), new Observer<MountViewModel.TrackingState>() {
+            @Override
+            public void onChanged(MountViewModel.TrackingState trackingState) {
+                String newState;
+                switch (trackingState) {
+                    case TRACKING:
+                        newState = "Tracking";
+                        break;
+                    case NOT_TRACKING:
+                        newState = "Not tracking";
+                        break;
+                    case PARKED:
+                        newState = "Parked";
+                        break;
+                    case UNPARKED:
+                        newState = "Unparked";
+                        break;
+                    default:
+                        newState = "Unknown";
+                        break;
+                }
+                mTrackingStateView.setText(newState);
+            }
+        });
     }
 
     private boolean isBound() {
-        return control.isBound() && serviceMessenger != null;
+        return mountViewModel.isBound() && serviceMessenger != null;
     }
 
     //Buttons
@@ -380,7 +400,7 @@ public class ControlFragment extends Fragment {
 
     public void onDisconnectClick(View view) {
         if (!isBound()) return;
-        control.disconnect();
+        mountViewModel.disconnect(getActivity());
     }
 
 
@@ -414,8 +434,10 @@ public class ControlFragment extends Fragment {
         }
 
         public void run() {
-            /* TODO switch to calculating offset from current target location, and move to that instead
-             * TODO That way it will move faster, this is way too slow of movement
+            /* TODO switch to calculating offset from current target location,
+                and move to that instead.
+             *  That way it will move faster, this is way too slow of movement and is intended
+             *  for guiding correction
              */
             MountMessages.moveSlightly(serviceMessenger, direction, duration);
         }

@@ -16,12 +16,11 @@ public interface ISearcherControl {
 
     enum EConnectionType { WIFI, BLUETOOTH, USB, UNKNOWN;}
 
-    public void setup(EConnectionType type);
+    public void setup(EConnectionType type, Activity activity);
     public void connect(IDevice d);
     public LiveData<Set<IDevice>> getDevices();
-    public void disconnect();
+    public void disconnect(Activity activity);
     public EConnectionType getType();
-    public Handler getHandler();
     public void discover();
 
     public Messenger getMessenger();

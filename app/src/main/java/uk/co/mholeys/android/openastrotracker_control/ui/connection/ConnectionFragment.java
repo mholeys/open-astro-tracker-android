@@ -29,19 +29,13 @@ public class ConnectionFragment extends Fragment {
 
     private static final String TAG = "ConnFrag";
 
-    private ISearcherControl control;
     private DevicesAdapter deviceAdapter;
     private MountViewModel mountViewModel;
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        if (getActivity() instanceof ISearcherControl) {
-            control = (ISearcherControl) getActivity();
-        } else {
-            Log.e(TAG, "onActivityCreated: Activity doesn't implement ISearcherControl!");
-        }
-        mountViewModel = new ViewModelProvider(this).get(MountViewModel.class);
+        mountViewModel = MountViewModel.getInstance(this);
     }
 
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -98,34 +92,34 @@ public class ConnectionFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (control != null && control.getType() != ISearcherControl.EConnectionType.UNKNOWN) {
-            addNewDevices(control.getDevices().getValue());
+        if (mountViewModel != null && mountViewModel.getType() != ISearcherControl.EConnectionType.UNKNOWN) {
+            addNewDevices(mountViewModel.getDevices().getValue());
         }
     }
 
     private void connectTo(IDevice device) {
-        control.connect(device);
+        mountViewModel.connect(device);
     }
 
     private void setupConnectionSearch(int pos) {
         switch (pos) {
             case 0:
                 // Wifi
-                control.setup(ISearcherControl.EConnectionType.WIFI);
+                mountViewModel.setup(ISearcherControl.EConnectionType.WIFI, getActivity());
                 break;
             case 1:
                 // Bluetooth
-                control.setup(ISearcherControl.EConnectionType.BLUETOOTH);
+                mountViewModel.setup(ISearcherControl.EConnectionType.BLUETOOTH, getActivity());
                 break;
             case 2:
                 // USB/Serial?
-                control.setup(ISearcherControl.EConnectionType.USB);
+                mountViewModel.setup(ISearcherControl.EConnectionType.USB, getActivity());
                 break;
             default:
-                control.setup(ISearcherControl.EConnectionType.UNKNOWN);
+                mountViewModel.setup(ISearcherControl.EConnectionType.UNKNOWN, getActivity());
                 Toast.makeText(getContext(), "This is not yet supported, sorry", Toast.LENGTH_SHORT).show();
         }
-        control.getDevices().observe(this, new Observer<Set<IDevice>>() {
+        mountViewModel.getDevices().observe(this, new Observer<Set<IDevice>>() {
             @Override
             public void onChanged(Set<IDevice> devices) {
                 addNewDevices(devices);
@@ -134,8 +128,8 @@ public class ConnectionFragment extends Fragment {
     }
 
     private void findDevices() {
-        control.setup(ISearcherControl.EConnectionType.BLUETOOTH);
-        control.discover();
+        mountViewModel.setup(ISearcherControl.EConnectionType.BLUETOOTH, getActivity());
+        mountViewModel.discover();
     }
 
     private void addNewDevices(Set<IDevice> devices) {
