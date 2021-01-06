@@ -58,6 +58,8 @@ public class MainActivity extends AppCompatActivity implements ISearcherControl 
     Messenger incomingMessenger;
     public Messenger serviceMessenger;
     public boolean bound = false;
+    public boolean shouldUnbind = false;
+    private boolean registeredBluetooth = false;
 
 
     enum ConnectionState { CONNECTING, CONNECTED, DISCONNECTED, FAILED, UNKNOWN };
@@ -83,9 +85,7 @@ public class MainActivity extends AppCompatActivity implements ISearcherControl 
     @Override
     protected void onStop() {
         super.onStop();
-        if (bound && connection != null) {
-            unbindService(connection);
-        }
+        doUnbindService();
         bound = false;
     }
 
@@ -103,8 +103,7 @@ public class MainActivity extends AppCompatActivity implements ISearcherControl 
             }
         }
         if (running) {
-            Intent bindIntent = new Intent(this, BluetoothOTAService.class);
-            bindService(bindIntent, connection, Context.BIND_AUTO_CREATE);
+            doBindService();
         }
         incomingMessenger = new Messenger(new OTAHandler(this));
     }
@@ -113,8 +112,7 @@ public class MainActivity extends AppCompatActivity implements ISearcherControl 
         Intent intent = new Intent(this, BluetoothOTAService.class);
         intent.putExtra("bluetooth-device", device);
         startService(intent);
-        Intent bindIntent = new Intent(this, BluetoothOTAService.class);
-        bindService(bindIntent, connection, Context.BIND_AUTO_CREATE);
+        doBindService();
     }
 
     private void setConnectionState(ConnectionState newState) {
@@ -125,7 +123,10 @@ public class MainActivity extends AppCompatActivity implements ISearcherControl 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        unregisterReceiver(bluetoothSearch.receiver);
+        if (registeredBluetooth) {
+            unregisterReceiver(bluetoothSearch.receiver);
+            registeredBluetooth = false;
+        }
     }
 
     @Override
@@ -139,6 +140,7 @@ public class MainActivity extends AppCompatActivity implements ISearcherControl 
                 }
                 bluetoothSearch.setup(this);
                 IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+                registeredBluetooth = true;
                 registerReceiver(bluetoothSearch.receiver, filter);
                 if (bluetoothDevices == null) {
                     bluetoothDevices = new MutableLiveData<>();
@@ -231,8 +233,11 @@ public class MainActivity extends AppCompatActivity implements ISearcherControl 
             case BLUETOOTH:
                 Intent intent = new Intent(this, BluetoothOTAService.class);
                 stopService(intent);
-                unbindService(connection);
-                unregisterReceiver(bluetoothSearch.receiver);
+                doUnbindService();
+                if (registeredBluetooth) {
+                    unregisterReceiver(bluetoothSearch.receiver);
+                    registeredBluetooth = false;
+                }
                 break;
             default:
                 break;
@@ -379,11 +384,30 @@ public class MainActivity extends AppCompatActivity implements ISearcherControl 
         }
 
         private void unbindAndChangeState(ConnectionState state) {
-            if (mActivity.get().bound && mActivity.get().connection != null) {
-                mActivity.get().unbindService(mActivity.get().connection);
+            MainActivity a = mActivity.get();
+            if (a.bound && a.connection != null) {
+                if (a.shouldUnbind) {
+                    a.unbindService(a.connection);
+                    a.shouldUnbind = false;
+                }
             }
-            mActivity.get().bound = false;
-            mActivity.get().setConnectionState(state);
+            a.bound = false;
+            a.setConnectionState(state);
+        }
+
+    }
+
+
+    private void doBindService() {
+        Intent bindIntent = new Intent(this, BluetoothOTAService.class);
+        if (bindService(bindIntent, connection, Context.BIND_AUTO_CREATE)) {
+            shouldUnbind = true;
+        }
+    }
+    private void doUnbindService() {
+        if (shouldUnbind) {
+            unbindService(connection);
+            shouldUnbind = false;
         }
 
     }

@@ -10,6 +10,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -20,6 +21,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
+import androidx.lifecycle.ViewModelProvider;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -164,6 +166,7 @@ public class BluetoothOTAService extends Service {
         UUID id = UUID.fromString(getString(R.string.bluetooth_sdp_uuid));
         connectThread = new ConnectThread(device, id);
         connectThread.start();
+
         return START_STICKY;
     }
 
@@ -202,18 +205,18 @@ public class BluetoothOTAService extends Service {
 
             statusRunnable = new StatusRunnable(mount);
             ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-//            statusRunnableFuture = executor.scheduleAtFixedRate(statusRunnable, 0, 100, TimeUnit.MILLISECONDS);
+            statusRunnableFuture = executor.scheduleAtFixedRate(statusRunnable, 0, 100, TimeUnit.MILLISECONDS);
 
             // TODO: to communicate from now on, this needs to be a BoundService
             // TODO: See https://developer.android.com/guide/components/bound-services
-//            mount.getSiteLatitude();
-//            mount.getSiteLongitude();
+            mount.getSiteLatitude();
+            mount.getSiteLongitude();
 //            // Set LST?
-//            mount.getPosition();
-//            mount.getRAStepsPerDegree();
-//            mount.getDecStepsPerDegree();
-//            mount.getSpeedFactor();
-//            mount.getHA();
+            mount.getPosition();
+            mount.getRAStepsPerDegree();
+            mount.getDecStepsPerDegree();
+            mount.getSpeedFactor();
+            mount.getHA();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -333,6 +336,7 @@ public class BluetoothOTAService extends Service {
 //            BluetoothOTAService.this.clientMessenger = msg.replyTo;
             Log.d(TAG, "ServiceHandler: " + msg);
             Object o = msg.obj;
+            Bundle b = msg.getData();
             TelescopePosition pos = null;
             switch (msg.what) {
                 case MainActivity.SETUP_CLIENT_MESSENGER:
@@ -352,12 +356,10 @@ public class BluetoothOTAService extends Service {
                     mount.getSiteLongitude();
                     break;
                 case Mount.SET_SITE_LATITUDE:
-                    Log.e(TAG, "handleMessage: SET_SITE_LAT not implemented");
-                    //mount.setSiteLatitude();
+                    mount.setSiteLatitude(b.getFloat(MountMessages.LATITUDE));
                     break;
                 case Mount.SET_SITE_LONGITUDE:
-                    Log.e(TAG, "handleMessage: SET_SITE_LON not implemented");
-                    //mount.setSiteLongitude();
+                    mount.setSiteLongitude(b.getFloat(MountMessages.LONGITUDE));
                     break;
                 case Mount.START_MOVING:
                     Log.e(TAG, "handleMessage: START_MOVING not implemented");

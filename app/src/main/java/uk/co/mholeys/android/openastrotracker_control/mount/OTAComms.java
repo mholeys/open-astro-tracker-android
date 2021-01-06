@@ -29,14 +29,13 @@ public class OTAComms extends Thread {
     }
 
     public void run() {
-        Log.d(TAG, "run: Started");
         StringBuilder sb = new StringBuilder(30);
         while (running) {
             try {
                 if (in.available() == 0) {
                     continue;
                 }
-                Log.d(TAG, "run: Got some bytes " + in.available());
+//                Log.v(TAG, "run: Got some bytes " + in.available());
                 CommandResponse cr = responseStack.remove();
                 if (cr instanceof NumericCommandResponse) {
                     // Single number no #
@@ -47,16 +46,16 @@ public class OTAComms extends Thread {
                     while ((r = in.readByte()) != -1) {
                         char c = (char) r;
                         if (c == '#') {
-                            Log.d(TAG, "run: End of answer '#'");
+//                            Log.v(TAG, "run: End of answer '#'");
                             break;
                         } else {
-                            Log.d(TAG, "run: got '" + c + "'");
+//                            Log.v(TAG, "run: got '" + c + "'");
                             sb.append(c);
                         }
                     }
                 }
 
-                Log.d(TAG, "got " + sb.toString());
+//                Log.v(TAG, "got " + sb.toString());
                 cr.result(true, sb.toString());
 
                 sb.delete(0, sb.length());
@@ -71,7 +70,6 @@ public class OTAComms extends Thread {
                 e.printStackTrace();
             }
         }
-        Log.d(TAG, "run: ended");
     }
 
     public synchronized void sendCommand(String command, CommandResponse callback) {

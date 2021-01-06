@@ -9,6 +9,9 @@ import uk.co.mholeys.android.openastrotracker_control.comms.model.TelescopePosit
 
 public class MountMessages {
 
+    public static final String LATITUDE = "Latitude";
+    public static final String LONGITUDE = "Longitude";
+
     public static void refreshMountState(Messenger target) {
         Bundle b = new Bundle();
         Message msg = Message.obtain(null, Mount.REFRESH_MOUNT_STATE,0,0);
@@ -41,19 +44,21 @@ public class MountMessages {
         } catch (RemoteException e) {
         }
     }
-    public static void setSiteLatitude(Messenger target) {
-        // TODO: Value
+    public static void setSiteLatitude(Messenger target, float lat) {
         Bundle b = new Bundle();
+        b.putFloat(LATITUDE, lat);
         Message msg = Message.obtain(null, Mount.SET_SITE_LATITUDE,0,0);
+        msg.setData(b);
         try {
             target.send(msg);
         } catch (RemoteException e) {
         }
     }
-    public static void setSiteLongitude(Messenger target) {
-        // TODO: value
+    public static void setSiteLongitude(Messenger target, float lon) {
         Bundle b = new Bundle();
+        b.putFloat(LONGITUDE, lon);
         Message msg = Message.obtain(null, Mount.SET_SITE_LONGITUDE,0,0);
+        msg.setData(b);
         try {
             target.send(msg);
         } catch (RemoteException e) {

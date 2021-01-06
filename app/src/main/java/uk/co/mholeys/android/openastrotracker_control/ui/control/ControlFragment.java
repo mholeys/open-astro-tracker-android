@@ -136,6 +136,7 @@ public class ControlFragment extends Fragment {
                 Mount.HMS polarisDecSouth = new Mount.HMS(-89, 21, 06);
                 TelescopePosition polarisPos = new TelescopePosition(Mount.HMSToFloat(polarisRa), Mount.HMSToFloat(polarisDecNorth), OTAEpoch.JNOW);
                 MountMessages.syncPolaris(serviceMessenger, polarisPos);
+                MountMessages.setTracking(serviceMessenger, true);
                 // Northern
                 //":SY+89*21:06.02:58:51#,n";
                 // Southern
@@ -166,7 +167,7 @@ public class ControlFragment extends Fragment {
             }
         });
         mStartTrackingButton = root.findViewById(R.id.tracking_on_btn);
-        mStopTrackingButton.setOnClickListener(new View.OnClickListener() {
+        mStartTrackingButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 onStartTrackingClick(v);
