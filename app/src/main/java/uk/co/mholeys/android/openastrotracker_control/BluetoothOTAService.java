@@ -56,7 +56,9 @@ public class BluetoothOTAService extends Service {
     public Messenger mMessenger = new Messenger(new MessageHandler());
     private Messenger clientMessenger;
     private StatusRunnable statusRunnable;
+    private PositionRunnable positionRunnable;
     private ScheduledFuture<?> statusRunnableFuture;
+    private ScheduledFuture<?> positionRunnableFuture;
 
     @Override
     public int onStartCommand(Intent intent, final int flags, int startId) {
@@ -209,9 +211,11 @@ public class BluetoothOTAService extends Service {
         try {
             mount = new Mount(client, mountHandler);
 
+            positionRunnable = new PositionRunnable(mount);
             statusRunnable = new StatusRunnable(mount);
             ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-//            statusRunnableFuture = executor.scheduleAtFixedRate(statusRunnable, 0, 100, TimeUnit.MILLISECONDS);
+            positionRunnableFuture = executor.scheduleAtFixedRate(positionRunnable, 0, 100, TimeUnit.MILLISECONDS);
+            statusRunnableFuture = executor.scheduleAtFixedRate(statusRunnable, 0, 200, TimeUnit.MILLISECONDS);
 
             // TODO: to communicate from now on, this needs to be a BoundService
             // TODO: See https://developer.android.com/guide/components/bound-services
@@ -229,6 +233,19 @@ public class BluetoothOTAService extends Service {
     }
 
     // Thread keeping the connection refreshed and the position/state up to date
+    private class PositionRunnable implements Runnable {
+        private static final String TAG = "BOTAServ.PosThr";
+
+        private Mount mount;
+
+        public PositionRunnable(Mount mount) {
+            this.mount = mount;
+        }
+
+        public void run() {
+            mount.getPosition();
+        }
+    }
     private class StatusRunnable implements Runnable {
         private static final String TAG = "BOTAServ.StatusThr";
 

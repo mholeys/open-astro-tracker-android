@@ -182,9 +182,11 @@ public class MountViewModel extends AndroidViewModel implements ISearcherControl
                     vm.siteLongitude.postValue((float) o);
                     break;
                 case Mount.START_MOVING:
+                case Mount.STOP_SLEWING:
                     vm.slewingState.postValue(true);
                     break;
                 case Mount.STOP_MOVING:
+                case Mount.START_SLEWING:
                     vm.slewingState.postValue(false);
                     break;
                 case Mount.SLEW:
@@ -233,12 +235,6 @@ public class MountViewModel extends AndroidViewModel implements ISearcherControl
                     break;
                 case Mount.UNPARK:
                     vm.trackingState.postValue(TrackingState.UNPARKED);
-                    break;
-                case Mount.STOP_SLEWING:
-                    vm.slewingState.postValue(true);
-                    break;
-                case Mount.START_SLEWING:
-                    vm.slewingState.postValue(false);
                     break;
                 case Mount.GET_RA_STEPS_PER_DEG:
                     vm.raStepsPerDeg.postValue(msg.arg2);

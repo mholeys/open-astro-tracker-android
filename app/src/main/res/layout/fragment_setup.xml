@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:id="@+id/site_lon_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="-101.5"
+        android:textSize="36sp"
+        app:layout_constraintStart_toStartOf="@+id/site_lat_label"
+        app:layout_constraintTop_toBottomOf="@+id/site_lon_label" />
+
+    <TextView
+        android:id="@+id/site_lon_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Site Longitude"
+        app:layout_constraintStart_toStartOf="@+id/site_lat_label"
+        app:layout_constraintTop_toBottomOf="@+id/site_lat_text" />
+
+    <TextView
+        android:id="@+id/site_lat_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="24dp"
+        android:text="Site Latitude"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/site_lat_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="-101.5"
+        android:textSize="36sp"
+        app:layout_constraintStart_toStartOf="@+id/site_lat_label"
+        app:layout_constraintTop_toBottomOf="@+id/site_lat_label" />
+
+    <Button
+        android:id="@+id/set_location_manual_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="32dp"
+        android:text="Set Manually"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/site_lon_text" />
+
+    <Button
+        android:id="@+id/set_location_gps_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="32dp"
+        android:text="Set from GPS"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/site_lat_text" />
+</androidx.constraintlayout.widget.ConstraintLayout>

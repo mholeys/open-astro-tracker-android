@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">OpenAstroTracker-Control</string>
     <string name="title_control">Control</string>
-    <string name="title_polar_align">Polar Align</string>
+    <string name="title_setup">Setup</string>
     <string name="title_connection">Connection</string>
     <string name="declination_short">DEC</string>
     <string name="control_title">Control</string>

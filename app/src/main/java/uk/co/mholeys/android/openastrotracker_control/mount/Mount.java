@@ -246,7 +246,7 @@ public class Mount {
     }
 
     public static class HMS {
-        double h, m, s;
+        public double h, m, s;
 
         public HMS() {}
         public HMS(double h, double m, double s) {

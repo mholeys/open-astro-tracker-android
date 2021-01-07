@@ -4,8 +4,6 @@ import android.app.Dialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Messenger;
-import android.os.Parcelable;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -19,17 +17,13 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
-import androidx.lifecycle.ViewModelProvider;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import uk.co.mholeys.android.openastrotracker_control.ISearcherControl;
 import uk.co.mholeys.android.openastrotracker_control.MountViewModel;
-import uk.co.mholeys.android.openastrotracker_control.PolarAlignmentDialogFragment;
-import uk.co.mholeys.android.openastrotracker_control.PolarAlignmentDialogFragment2;
 import uk.co.mholeys.android.openastrotracker_control.R;
 import uk.co.mholeys.android.openastrotracker_control.comms.model.OTAEpoch;
 import uk.co.mholeys.android.openastrotracker_control.comms.model.TelescopePosition;
@@ -322,7 +316,11 @@ public class ControlFragment extends Fragment {
         super.onActivityCreated(savedInstanceState);
         mountViewModel = MountViewModel.getInstance(this);
         this.serviceMessenger = mountViewModel.getMessenger();
+    }
 
+    @Override
+    public void onResume() {
+        super.onResume();
         mountViewModel.getTrackingState().observe(getViewLifecycleOwner(), new Observer<MountViewModel.TrackingState>() {
             @Override
             public void onChanged(MountViewModel.TrackingState trackingState) {
@@ -345,6 +343,17 @@ public class ControlFragment extends Fragment {
                         break;
                 }
                 mTrackingStateView.setText(newState);
+            }
+        });
+        mountViewModel.getCurrentPosition().observe(getViewLifecycleOwner(), new Observer<TelescopePosition>() {
+            @Override
+            public void onChanged(TelescopePosition telescopePosition) {
+                Mount.HMS ra = new Mount.HMS();
+                Mount.HMS dec = new Mount.HMS();
+                Mount.floatToHMS(telescopePosition.RightAscension, ra);
+                Mount.floatToHMS(telescopePosition.Declination, dec);
+                mCurrentDECText.setText(String.format("%02d : %02d : %02d", (int)dec.h, (int)dec.m, (int)dec.s));
+                mCurrentRAText.setText(String.format("%02d : %02d : %02d", (int)ra.h, (int)ra.m, (int)ra.s));
             }
         });
     }

@@ -6,10 +6,10 @@
     app:startDestination="@+id/navigation_control">
 
     <fragment
-        android:id="@+id/navigation_polar_align"
-        android:name="uk.co.mholeys.android.openastrotracker_control.ui.poi.PointsOfInterestFragment"
-        android:label="@string/title_polar_align"
-        tools:layout="@layout/fragment_poi" />
+        android:id="@+id/navigation_setup"
+        android:name="uk.co.mholeys.android.openastrotracker_control.ui.setup.SetupFragment"
+        android:label="@string/title_setup"
+        tools:layout="@layout/fragment_setup" />
 
     <fragment
         android:id="@+id/navigation_control"

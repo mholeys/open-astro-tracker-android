@@ -2,9 +2,9 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
-        android:id="@+id/navigation_polar_align"
+        android:id="@+id/navigation_setup"
         android:icon="@drawable/ic_dashboard_black_24dp"
-        android:title="@string/title_polar_align" />
+        android:title="@string/title_setup" />
 
     <item
         android:id="@+id/navigation_control"
