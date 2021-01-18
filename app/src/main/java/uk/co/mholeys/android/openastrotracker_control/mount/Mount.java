@@ -64,8 +64,13 @@ public class Mount {
     public static final int GET_DEC_STEPS_PER_DEG  = 21;
     public static final int GET_SPEED_FACTOR       = 22;
 
-    public static final int SYNC_POLARIS          = 23;
+    public static final int SYNC_POLARIS           = 23;
     public static final int MOVE_SLIGHTLY          = 24;
+    public static final int SET_RA_STEPS_PER_DEG   = 25;
+    public static final int SET_DEC_STEPS_PER_DEG  = 26;
+    public static final int SET_SPEED_FACTOR       = 27;
+    public static final int GET_TRACKING_STATE     = 28;
+    public static final int GET_SLEWING_STATE      = 29;
 
 //    private static final Handler bluetoothHandler = new Handler() {
 //        @Override
@@ -170,7 +175,6 @@ public class Mount {
             @Override
             public void result(boolean success, String result) {
                 if (success) {
-                    Log.d(TAG, "getSiteLat: got" + result);
                     float lat = (float) tryParseDec(result);
                     Message writtenMsg = handler.obtainMessage(Mount.GET_SITE_LATITUDE, success ? 1 : 0, 0, lat);
                     writtenMsg.sendToTarget();
@@ -188,7 +192,6 @@ public class Mount {
             @Override
             public void result(boolean success, String result) {
                 if (success) {
-                    Log.d(TAG, "getSiteLon: got" + result);
                     double lon = tryParseDec(result);
                     if (lon > 180) {
                         lon -= 360;
@@ -270,17 +273,25 @@ public class Mount {
 
     public static double tryParseRA(String ra) {
         String[] parts = ra.split(":");
-        return Integer.parseInt(parts[0]) + Integer.parseInt(parts[1]) / 60.0 + Integer.parseInt(parts[2]) / 3600.0;
+        try {
+            return Integer.parseInt(parts[0]) + Integer.parseInt(parts[1]) / 60.0 + Integer.parseInt(parts[2]) / 3600.0;
+        } catch (Exception e) {
+            return -1d;
+        }
     }
 
     public static double tryParseDec(String dec) {
         String[] parts = dec.split("\\*|\'");
-        double dDec = Integer.parseInt(parts[0]) + Integer.parseInt(parts[1]) / 60.0;
-        if (parts.length > 2) {
-            dDec += Integer.parseInt(parts[2]) / 3600.0;
-        }
+        try {
+            double dDec = Integer.parseInt(parts[0]) + Integer.parseInt(parts[1]) / 60.0;
+            if (parts.length > 2) {
+                dDec += Integer.parseInt(parts[2]) / 3600.0;
+            }
 
-        return dDec;
+            return dDec;
+        } catch (Exception e) {
+            return -1d;
+        }
     }
 
     public void startMoving(String dir) {
@@ -318,7 +329,6 @@ public class Mount {
         ota.sendCommand(command, new OTAComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
-                Log.d(TAG, "slew result: " + result);
                 if (!success || !result.equals("1")) {
                     Message writtenMsg = handler.obtainMessage(Mount.SLEW, 0, 0, result);
                     writtenMsg.sendToTarget();
@@ -336,7 +346,6 @@ public class Mount {
                 ota.sendCommand(command2, new OTAComms.NumericCommandResponse() {
                     @Override
                     public void result(boolean success2, String result2) {
-                        Log.d(TAG, "slew ra result: " + result2);
                         if (!success2 || !result2.equals("1")) {
                             Message writtenMsg = handler.obtainMessage(Mount.SLEW, 0, 1, result2);
                             writtenMsg.sendToTarget();
@@ -355,7 +364,6 @@ public class Mount {
                                 //        If 1 or 2 is returned, a string containing an appropriate message is also returned.
                                 Message writtenMsg = handler.obtainMessage(Mount.SLEW, success3 ? 1 : 0, 2, result3);
                                 writtenMsg.sendToTarget();
-                                Log.d(TAG, "slewslew result: " + result3);
                                 getPosition();
                             }
                         });
@@ -452,8 +460,6 @@ public class Mount {
         ota.sendCommand(":SHP#", new OTAComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
-                // Todo:
-                Log.d(TAG, "setHomeResult: "  + success + " " + result);
                 Message writtenMsg = handler.obtainMessage(Mount.SET_HOME, success ? 1 : 0, 0, result);
                 writtenMsg.sendToTarget();
                 // Unknown result
@@ -468,9 +474,7 @@ public class Mount {
             @Override
             public void result(boolean success, String result) {
                 if (success && result.length() >= 6) {
-                    Log.d(TAG, "getHA: got " + result);
                     String newHa = String.format("%sh %sm %ss", result.substring(0, 2), result.substring(2, 4), result.substring(4, 6));
-                    Log.d(TAG, "getHAPostHome: " + newHa);
                     Message writtenMsg = handler.obtainMessage(Mount.GET_HA, success ? 1 : 0, 0, newHa);
                     writtenMsg.sendToTarget();
                 } else {
@@ -483,16 +487,15 @@ public class Mount {
     }
 
     public void setTracking(final boolean enabled) {
-        int b = enabled ? 1 : 0;
+        final int b = enabled ? 1 : 0;
         // Numerical response, treat as full
         ota.sendCommand(":MT" + b + "#", new OTAComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
 //              MountState.setTracking(enabled);
-                Log.d(TAG, "result: " + result);
                 int state = 0;
                 if (result.equals("1")) {
-                    state = 1;
+                    state = b;
                 }
                 Message writtenMsg = handler.obtainMessage(Mount.SET_TRACKING, success ? 1 : 0, state, result);
                 writtenMsg.sendToTarget();
@@ -588,14 +591,9 @@ public class Mount {
 
     public void park() {
         // No response
-        ota.sendCommand(":hP#", new OTAComms.CommandResponse() {
-            @Override
-            public void result(boolean success, String result) {
-                Log.d(TAG, "parkResult: " + success + " " + result);
-                Message writtenMsg = handler.obtainMessage(Mount.PARK, success ? 1 : 0, 0, result);
-                writtenMsg.sendToTarget();
-            }
-        });
+        ota.sendBlindCommand(":hP#");
+        Message writtenMsg = handler.obtainMessage(Mount.PARK, 1, 0, null);
+        writtenMsg.sendToTarget();
     }
 
     public void unpark() {
@@ -603,7 +601,6 @@ public class Mount {
         ota.sendCommand(":hU#", new OTAComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
-                Log.d(TAG, "unparkResult: " + success + " " + result);
                 Message writtenMsg = handler.obtainMessage(Mount.UNPARK, success ? 1 : 0, 0, result);
                 writtenMsg.sendToTarget();
             }
@@ -639,7 +636,6 @@ public class Mount {
         ota.sendCommand(":XGR#", new OTAComms.CommandResponse() {
             @Override
             public void result(boolean success, String result) {
-                Log.d(TAG, "getRAStepsPerDegreeResult: " + success + " " + result);
                 int steps = -1;
                 try {
                     steps = Integer.parseInt(result);
@@ -657,7 +653,6 @@ public class Mount {
         ota.sendCommand(":XGD#", new OTAComms.CommandResponse() {
             @Override
             public void result(boolean success, String result) {
-                Log.d(TAG, "getDECStepsPerDegreeResult: " + success + " " + result);
                 int steps = -1;
                 try {
                     steps = Integer.parseInt(result);
@@ -675,7 +670,6 @@ public class Mount {
         ota.sendCommand(":XGS#", new OTAComms.CommandResponse() {
             @Override
             public void result(boolean success, String result) {
-                Log.d(TAG, "getSpeedFactorResult: " + success + " " + result);
                 float speedFactor = -1;
                 try {
                     speedFactor = Float.parseFloat(result);
@@ -688,6 +682,34 @@ public class Mount {
         });
     }
 
+    public void setSpeedFactor(float speedFactor) {
+        // No response
+        int sfInt = (int) Math.abs(speedFactor);
+        int sfDec = (int) ((Math.abs(speedFactor) - sfInt) * 1000);
+        if (sfInt > 9) {
+            sfInt = 9;
+        } else if (sfInt < 0) {
+            sfInt = 0;
+        }
+
+        String command = String.format(":XSS%02d.%03d#", sfInt, sfDec);
+        ota.sendBlindCommand(command);
+        getSpeedFactor();
+    }
+
+    public void setRaStepsPerDeg(int steps) {
+        // No response
+        ota.sendBlindCommand(":XSR" + steps + "#");
+        getRAStepsPerDegree();
+    }
+
+    public void setDecStepsPerDeg(int steps) {
+        // No response
+        ota.sendBlindCommand(":XSD" + steps + "#");
+        getDecStepsPerDegree();
+    }
+
+
     public void moveSlightly(char direction, int duration) {
         direction = Character.toUpperCase(direction);
         if (duration < 0 || duration > 9999) {
@@ -697,9 +719,39 @@ public class Mount {
         ota.sendCommand(String.format(":MG%c%04d#", direction, duration), new OTAComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
-                Log.d(TAG, "moveSlightlyResult: " + success + " " + result);
+//                Log.d(TAG, "moveSlightlyResult: " + success + " " + result);
 //                Message writtenMsg = handler.obtainMessage(Mount.GET_SPEED_FACTOR, success ? 1 : 0, 0, result);
 //                writtenMsg.sendToTarget();
+            }
+        });
+    }
+
+    public void getTrackingState() {
+        // Full response
+        ota.sendCommand(":GIT#", new OTAComms.CommandResponse() {
+            @Override
+            public void result(boolean success, String result) {
+                int state = 0;
+                if (result.equals("1")) {
+                    state = 1;
+                }
+                Message writtenMsg = handler.obtainMessage(Mount.GET_TRACKING_STATE, success ? 1 : 0, state);
+                writtenMsg.sendToTarget();
+            }
+        });
+    }
+
+    public void getSlewingState() {
+        // Full response
+        ota.sendCommand(":GIS#", new OTAComms.CommandResponse() {
+            @Override
+            public void result(boolean success, String result) {
+                int state = 0;
+                if (result.equals("1")) {
+                    state = 1;
+                }
+                Message writtenMsg = handler.obtainMessage(Mount.GET_SLEWING_STATE, success ? 1 : 0, state);
+                writtenMsg.sendToTarget();
             }
         });
     }

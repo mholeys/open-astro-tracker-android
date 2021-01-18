@@ -121,17 +121,18 @@
         android:id="@+id/textView11"
         android:layout_width="wrap_content"
         android:layout_height="0dp"
+        android:layout_marginTop="2dp"
         android:text="@string/tracking_label"
         app:layout_constraintEnd_toStartOf="@+id/tracking_on_btn"
         app:layout_constraintStart_toEndOf="@+id/tracking_off_btn"
-        app:layout_constraintTop_toTopOf="@+id/move_left_btn" />
+        app:layout_constraintTop_toBottomOf="@+id/move_up_btn" />
 
     <TextView
         android:id="@+id/tracking_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="Unknown"
+        android:layout_marginTop="2dp"
+        android:text="@string/tracking_unknown"
         app:layout_constraintEnd_toStartOf="@+id/tracking_on_btn"
         app:layout_constraintStart_toEndOf="@+id/tracking_off_btn"
         app:layout_constraintTop_toBottomOf="@+id/textView11" />
@@ -142,7 +143,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="24dp"
         android:layout_marginTop="8dp"
-        android:text="Current RA"
+        android:text="@string/current_ra"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/view4" />
 
@@ -151,7 +152,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Current DEC"
+        android:text="@string/current_dec"
         app:layout_constraintStart_toStartOf="@+id/current_ra_text_label"
         app:layout_constraintTop_toBottomOf="@+id/current_ra_text" />
 
@@ -190,7 +191,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="16dp"
-        android:text="Get Position"
+        android:text="@string/get_position"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@+id/disconnect_btn" />
 
@@ -198,9 +199,18 @@
         android:id="@+id/stop_btn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Stop"
+        android:text="@string/stop"
         app:layout_constraintEnd_toStartOf="@+id/set_home_btn"
         app:layout_constraintStart_toEndOf="@+id/home_btn"
         app:layout_constraintTop_toTopOf="@+id/home_btn" />
+
+    <TextView
+        android:id="@+id/slewing_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/tracking_unknown"
+        app:layout_constraintEnd_toStartOf="@+id/tracking_on_btn"
+        app:layout_constraintStart_toEndOf="@+id/tracking_off_btn"
+        app:layout_constraintTop_toBottomOf="@+id/tracking_text" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

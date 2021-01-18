@@ -204,9 +204,46 @@ public class MountMessages {
         }
     }
 
+    public static void setRaStepsPerDeg(Messenger target, int steps) {
+        Bundle b = new Bundle();
+        Message msg = Message.obtain(null, Mount.SET_RA_STEPS_PER_DEG, steps,0);
+        try {
+            target.send(msg);
+        } catch (RemoteException e) {
+        }
+    }
+
+    public static void setDecStepsPerDeg(Messenger target, int steps) {
+        Bundle b = new Bundle();
+        Message msg = Message.obtain(null, Mount.SET_DEC_STEPS_PER_DEG, steps,0);
+        try {
+            target.send(msg);
+        } catch (RemoteException e) {
+        }
+    }
+
+    public static void setSpeedFactor(Messenger target, float speedFactor) {
+        Bundle b = new Bundle();
+        Message msg = Message.obtain(null, Mount.SET_SPEED_FACTOR,0,0);
+        msg.obj = speedFactor;
+        try {
+            target.send(msg);
+        } catch (RemoteException e) {
+        }
+    }
+
     public static void moveSlightly(Messenger target, char direction, int duration) {
         Bundle b = new Bundle();
         Message msg = Message.obtain(null, Mount.MOVE_SLIGHTLY, direction, duration);
+        try {
+            target.send(msg);
+        } catch (RemoteException e) {
+        }
+    }
+
+    public static void getTrackingState(Messenger target) {
+        Bundle b = new Bundle();
+        Message msg = Message.obtain(null, Mount.GET_TRACKING_STATE,0,0);
         try {
             target.send(msg);
         } catch (RemoteException e) {

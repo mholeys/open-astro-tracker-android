@@ -5,44 +5,44 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <TextView
-        android:id="@+id/site_lon_text"
+    <View
+        android:id="@+id/view"
+        style="@style/Divider"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="1dp"
         android:layout_marginTop="8dp"
-        android:text="-101.5"
-        android:textSize="36sp"
-        app:layout_constraintStart_toStartOf="@+id/site_lat_label"
-        app:layout_constraintTop_toBottomOf="@+id/site_lon_label" />
-
-    <TextView
-        android:id="@+id/site_lon_label"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Site Longitude"
-        app:layout_constraintStart_toStartOf="@+id/site_lat_label"
-        app:layout_constraintTop_toBottomOf="@+id/site_lat_text" />
-
-    <TextView
-        android:id="@+id/site_lat_label"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="24dp"
-        android:text="Site Latitude"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@+id/site_lon_text" />
 
-    <TextView
-        android:id="@+id/site_lat_text"
+    <View
+        android:id="@+id/view2"
+        style="@style/Divider"
+        android:layout_width="wrap_content"
+        android:layout_height="1dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/speed_factor_text" />
+
+    <View
+        android:id="@+id/view5"
+        style="@style/Divider"
+        android:layout_width="wrap_content"
+        android:layout_height="1dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/dec_steps_text" />
+
+    <Button
+        android:id="@+id/set_speed_factor_btn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="-101.5"
-        android:textSize="36sp"
-        app:layout_constraintStart_toStartOf="@+id/site_lat_label"
-        app:layout_constraintTop_toBottomOf="@+id/site_lat_label" />
+        android:layout_marginEnd="32dp"
+        android:text="Edit"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/speed_factor_text" />
 
     <Button
         android:id="@+id/set_location_manual_btn"
@@ -61,4 +61,99 @@
         android:text="Set from GPS"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@+id/site_lat_text" />
+
+    <TextView
+        android:id="@+id/speed_factor_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="1001"
+        android:textSize="36sp"
+        app:layout_constraintStart_toStartOf="@+id/site_lat_label"
+        app:layout_constraintTop_toBottomOf="@+id/speed_factor_label" />
+
+    <TextView
+        android:id="@+id/site_lon_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Site Longitude"
+        app:layout_constraintStart_toStartOf="@+id/site_lat_label"
+        app:layout_constraintTop_toBottomOf="@+id/site_lat_text" />
+
+    <TextView
+        android:id="@+id/site_lat_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:text="Site Latitude"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/site_lat_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="-101.5"
+        android:textSize="36sp"
+        app:layout_constraintStart_toStartOf="@+id/site_lat_label"
+        app:layout_constraintTop_toBottomOf="@+id/site_lat_label" />
+
+    <TextView
+        android:id="@+id/site_lon_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="-101.5"
+        android:textSize="36sp"
+        app:layout_constraintStart_toStartOf="@+id/site_lat_label"
+        app:layout_constraintTop_toBottomOf="@+id/site_lon_label" />
+
+    <TextView
+        android:id="@+id/speed_factor_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Speed Factor"
+        app:layout_constraintStart_toStartOf="@+id/site_lat_label"
+        app:layout_constraintTop_toBottomOf="@+id/site_lon_text" />
+
+    <TextView
+        android:id="@+id/ra_steps_per_deg_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="RA Steps/Degree"
+        app:layout_constraintStart_toStartOf="@+id/site_lat_label"
+        app:layout_constraintTop_toBottomOf="@+id/speed_factor_text" />
+
+    <TextView
+        android:id="@+id/ra_steps_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="400"
+        android:textSize="36sp"
+        app:layout_constraintStart_toStartOf="@+id/site_lat_label"
+        app:layout_constraintTop_toBottomOf="@+id/ra_steps_per_deg_label" />
+
+    <TextView
+        android:id="@+id/dec_steps_per_deg_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="DEC Steps/Degree"
+        app:layout_constraintStart_toStartOf="@+id/site_lat_label"
+        app:layout_constraintTop_toBottomOf="@+id/ra_steps_text" />
+
+    <TextView
+        android:id="@+id/dec_steps_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="400"
+        android:textSize="36sp"
+        app:layout_constraintStart_toStartOf="@+id/site_lat_label"
+        app:layout_constraintTop_toBottomOf="@+id/dec_steps_per_deg_label" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

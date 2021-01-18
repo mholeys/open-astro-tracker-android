@@ -16,7 +16,7 @@
     <string name="polar_alignment">Polar alignment</string>
     <string name="stop_tracking">Stop tracking</string>
     <string name="start_tracking">Start tracking</string>
-    <string name="tracking_label">Tracking</string>
+    <string name="tracking_label">Tracking/Slewing:</string>
 
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="at_home_question">Is the mount at the home position?</string>
@@ -31,6 +31,18 @@
     <string name="bluetooth_sdp_uuid">00001101-0000-1000-8000-00805F9B34FB</string>
     <string name="bluetooth_uuid">9333ce44-2e18-4474-a7d1-bab7b8afd5a7</string>
     <string name="disconnect">Disconnect</string>
+    <string name="set_location">Set Location:</string>
+    <string name="tracking_tracking">Tracking</string>
+    <string name="tracking_not_tracking">Not tracking</string>
+    <string name="tracking_parked">Parked</string>
+    <string name="tracking_unparked">Unparked</string>
+    <string name="tracking_unknown">Unknown</string>
+    <string name="tracking_slewing">Slewing</string>
+    <string name="tracking_not_slewing">Not Slewing</string>
+    <string name="current_ra">Current RA</string>
+    <string name="current_dec">Current DEC</string>
+    <string name="get_position">Get Position</string>
+    <string name="stop">Stop</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string-array name="connection_types">
         <item>WiFi</item>

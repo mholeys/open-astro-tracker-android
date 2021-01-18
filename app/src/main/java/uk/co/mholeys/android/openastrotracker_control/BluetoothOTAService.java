@@ -222,6 +222,7 @@ public class BluetoothOTAService extends Service {
             mount.getSiteLatitude();
             mount.getSiteLongitude();
 //            // Set LST?
+            mount.getTrackingState();
             mount.getPosition();
             mount.getRAStepsPerDegree();
             mount.getDecStepsPerDegree();
@@ -256,7 +257,8 @@ public class BluetoothOTAService extends Service {
         }
 
         public void run() {
-            mount.getPosition();
+            mount.getTrackingState();
+            mount.getSlewingState();
         }
     }
 
@@ -367,84 +369,128 @@ public class BluetoothOTAService extends Service {
                     Log.d(TAG, "handleMessage: Setup client messenger");
                     break;
                 case Mount.REFRESH_MOUNT_STATE:
+                    if (mount == null) {return;}
                     mount.refreshMountState();
                     break;
                 case Mount.GET_POSITION:
+                    if (mount == null) {return;}
                     mount.getPosition();
                     break;
                 case Mount.GET_SITE_LATITUDE:
+                    if (mount == null) {return;}
                     mount.getSiteLatitude();
                     break;
                 case Mount.GET_SITE_LONGITUDE:
+                    if (mount == null) {return;}
                     mount.getSiteLongitude();
                     break;
                 case Mount.SET_SITE_LATITUDE:
+                    if (mount == null) {return;}
                     mount.setSiteLatitude(b.getFloat(MountMessages.LATITUDE));
                     break;
                 case Mount.SET_SITE_LONGITUDE:
+                    if (mount == null) {return;}
                     mount.setSiteLongitude(b.getFloat(MountMessages.LONGITUDE));
                     break;
                 case Mount.START_MOVING:
+                    if (mount == null) {return;}
                     Log.e(TAG, "handleMessage: START_MOVING not implemented");
                     //mount.startMoving();
                     break;
                 case Mount.STOP_MOVING:
+                    if (mount == null) {return;}
                     Log.e(TAG, "handleMessage: STOP_MOVING not implemented");
                     //mount.stopMoving();
                     break;
                 case Mount.SLEW:
+                    if (mount == null) {return;}
                     pos = (TelescopePosition) o;
                     mount.slew(pos);
                     break;
                 case Mount.SYNC:
+                    if (mount == null) {return;}
                     pos = (TelescopePosition) o;
                     mount.sync(pos);
                     break;
                 case Mount.SYNC_POLARIS:
+                    if (mount == null) {return;}
                     pos = (TelescopePosition) o;
                     mount.syncPolaris(pos);
                     break;
                 case Mount.GO_HOME:
+                    if (mount == null) {return;}
                     mount.goHome();
                     break;
                 case Mount.SET_HOME:
+                    if (mount == null) {return;}
                     mount.setHome();
                     break;
                 case Mount.GET_HA:
+                    if (mount == null) {return;}
                     mount.getHA();
                     break;
                 case Mount.SET_TRACKING:
+                    if (mount == null) {return;}
                     mount.setTracking(MountMessages.toBool(msg.arg1));
                     break;
                 case Mount.SET_LOCATION:
+                    if (mount == null) {return;}
                     Log.e(TAG, "handleMessage: SET_LOCATION not implemented");
                     //mount.setLocation();
                     break;
                 case Mount.PARK:
+                    if (mount == null) {return;}
                     mount.park();
                     break;
                 case Mount.UNPARK:
+                    if (mount == null) {return;}
                     mount.unpark();
                     break;
                 case Mount.STOP_SLEWING:
+                    if (mount == null) {return;}
                     Log.e(TAG, "handleMessage: STOP_SLEWING not implemented");
                     //mount.stopSlewing();
                     break;
                 case Mount.START_SLEWING:
+                    if (mount == null) {return;}
                     Log.e(TAG, "handleMessage: START_SLEWING not implemented");
                     //mount.toggleSlewing();
                     break;
                 case Mount.GET_RA_STEPS_PER_DEG:
+                    if (mount == null) {return;}
                     mount.getRAStepsPerDegree();
                     break;
                 case Mount.GET_DEC_STEPS_PER_DEG:
+                    if (mount == null) {return;}
                     mount.getDecStepsPerDegree();
                     break;
                 case Mount.GET_SPEED_FACTOR:
+                    if (mount == null) {return;}
                     mount.getSpeedFactor();
                     break;
                 case Mount.MOVE_SLIGHTLY:
+                    if (mount == null) {return;}
                     mount.moveSlightly((char) msg.arg1, msg.arg2);
+                case Mount.SET_RA_STEPS_PER_DEG:
+                    if (mount == null) {return;}
+                    mount.setRaStepsPerDeg(msg.arg1);
+                    break;
+                case Mount.SET_DEC_STEPS_PER_DEG:
+                    if (mount == null) {return;}
+                    mount.setDecStepsPerDeg(msg.arg1);
+                    break;
+                case Mount.SET_SPEED_FACTOR:
+                    if (mount == null) {return;}
+                    mount.setSpeedFactor((float) msg.obj);
+                    break;
+                case Mount.GET_TRACKING_STATE:
+                    if (mount == null) {return;}
+                    mount.getTrackingState();
+                    break;
+                case Mount.GET_SLEWING_STATE:
+                    if (mount == null) {return;}
+                    mount.getSlewingState();
+                    break;
                 default:
                     break;
             }

@@ -36,6 +36,7 @@ public class ControlFragment extends Fragment {
     Button mStopTrackingButton;
     Button mStartTrackingButton;
     TextView mTrackingStateView;
+    TextView mSlewingStateView;
 
     Button mMoveUpButton;
     Button mMoveLeftButton;
@@ -168,6 +169,7 @@ public class ControlFragment extends Fragment {
             }
         });
         mTrackingStateView = root.findViewById(R.id.tracking_text);
+        mSlewingStateView = root.findViewById(R.id.slewing_text);
 
         movementExecutor = Executors.newSingleThreadScheduledExecutor();
 
@@ -327,22 +329,32 @@ public class ControlFragment extends Fragment {
                 String newState;
                 switch (trackingState) {
                     case TRACKING:
-                        newState = "Tracking";
+                        newState = getString(R.string.tracking_tracking);
                         break;
                     case NOT_TRACKING:
-                        newState = "Not tracking";
+                        newState = getString(R.string.tracking_not_tracking);
                         break;
                     case PARKED:
-                        newState = "Parked";
+                        newState = getString(R.string.tracking_parked);
                         break;
                     case UNPARKED:
-                        newState = "Unparked";
+                        newState = getString(R.string.tracking_unparked);
                         break;
                     default:
-                        newState = "Unknown";
+                        newState = getString(R.string.tracking_unknown);
                         break;
                 }
                 mTrackingStateView.setText(newState);
+            }
+        });
+        mountViewModel.getSlewingState().observe(getViewLifecycleOwner(), new Observer<Boolean>() {
+            @Override
+            public void onChanged(Boolean slewing) {
+                if (slewing) {
+                    mSlewingStateView.setText(R.string.tracking_slewing);
+                } else {
+                    mSlewingStateView.setText(R.string.tracking_not_slewing);
+                }
             }
         });
         mountViewModel.getCurrentPosition().observe(getViewLifecycleOwner(), new Observer<TelescopePosition>() {

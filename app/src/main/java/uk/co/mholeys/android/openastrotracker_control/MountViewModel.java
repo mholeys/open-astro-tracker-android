@@ -250,6 +250,16 @@ public class MountViewModel extends AndroidViewModel implements ISearcherControl
                         TelescopePosition pos = (TelescopePosition) o;
                         // TODO:
                     }
+                case Mount.GET_TRACKING_STATE:
+                    if (msg.arg2 == 1) {
+                        vm.trackingState.setValue(TrackingState.TRACKING);
+                    } else {
+                        vm.trackingState.setValue(TrackingState.NOT_TRACKING);
+                    }
+                    break;
+                case Mount.GET_SLEWING_STATE:
+                    vm.slewingState.setValue(msg.arg2 == 1);
+                    break;
                 default:
                     break;
             }
