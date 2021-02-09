@@ -21,7 +21,6 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
-import androidx.lifecycle.ViewModelProvider;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -34,10 +33,10 @@ import uk.co.mholeys.android.openastrotracker_control.comms.model.TelescopePosit
 import uk.co.mholeys.android.openastrotracker_control.mount.Mount;
 import uk.co.mholeys.android.openastrotracker_control.mount.MountMessages;
 
-public class BluetoothOTAService extends Service {
+public class BluetoothOATService extends Service {
 
-    public static final String CHANNEL_ID = "OTAConnectionServiceF";
-    private static final String TAG = "OTAServBl";
+    public static final String CHANNEL_ID = "OATConnectionServiceF";
+    private static final String TAG = "OATServBl";
 
     public static final int DEVICE_CONNECTED = 0x222001;
     public static final int DEVICE_DISCONNECTED = 0x222002;
@@ -235,7 +234,7 @@ public class BluetoothOTAService extends Service {
 
     // Thread keeping the connection refreshed and the position/state up to date
     private class PositionRunnable implements Runnable {
-        private static final String TAG = "BOTAServ.PosThr";
+        private static final String TAG = "BOATServ.PosThr";
 
         private Mount mount;
 
@@ -248,7 +247,7 @@ public class BluetoothOTAService extends Service {
         }
     }
     private class StatusRunnable implements Runnable {
-        private static final String TAG = "BOTAServ.StatusThr";
+        private static final String TAG = "BOATServ.StatusThr";
 
         private Mount mount;
 
@@ -263,7 +262,7 @@ public class BluetoothOTAService extends Service {
     }
 
     private class ConnectThread extends Thread {
-        private static final String TAG = "BOTAServ.ConThr";
+        private static final String TAG = "BOATServ.ConThr";
 
         private final BluetoothSocket mmSocket;
         private final BluetoothDevice mmDevice;
@@ -358,7 +357,7 @@ public class BluetoothOTAService extends Service {
 
         @Override
         public void handleMessage(Message msg) {
-//            BluetoothOTAService.this.clientMessenger = msg.replyTo;
+//            BluetoothOATService.this.clientMessenger = msg.replyTo;
             Log.d(TAG, "ServiceHandler: " + msg);
             Object o = msg.obj;
             Bundle b = msg.getData();
@@ -435,8 +434,12 @@ public class BluetoothOTAService extends Service {
                     break;
                 case Mount.SET_LOCATION:
                     if (mount == null) {return;}
-                    Log.e(TAG, "handleMessage: SET_LOCATION not implemented");
-                    //mount.setLocation();
+                    mount.setLocation(
+                            b.getFloat(MountMessages.LATITUDE, 100f),
+                            b.getFloat(MountMessages.LONGITUDE, 0f),
+                            b.getInt(MountMessages.ALTITUDE, 100),
+                            b.getInt(MountMessages.LST, 0)
+                    );
                     break;
                 case Mount.PARK:
                     if (mount == null) {return;}
@@ -491,6 +494,10 @@ public class BluetoothOTAService extends Service {
                     if (mount == null) {return;}
                     mount.getSlewingState();
                     break;
+                case Mount.GET_MOUNT_VERSION:
+                    if (mount == null) {return;}
+                    mount.getMountVersion();
+                    break;
                 default:
                     break;
             }
@@ -509,7 +516,12 @@ public class BluetoothOTAService extends Service {
                 // Cancel gracefully as to not cause reconnection issues
                 statusRunnableFuture.cancel(false);
             }
-            mount.ota.end();
+            if (positionRunnableFuture != null) {
+                // Cancel gracefully as to not cause reconnection issues
+                positionRunnableFuture.cancel(false);
+            }
+
+            mount.oat.end();
         }
     }
 }

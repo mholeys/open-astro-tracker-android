@@ -55,7 +55,7 @@ public class MainActivity extends AppCompatActivity {
         final List<ActivityManager.RunningServiceInfo> services = activityManager.getRunningServices(Integer.MAX_VALUE);
         boolean running = false;
         for (ActivityManager.RunningServiceInfo runningServiceInfo : services) {
-            if (runningServiceInfo.service.getClassName().equals(BluetoothOTAService.class.getName())){
+            if (runningServiceInfo.service.getClassName().equals(BluetoothOATService.class.getName())){
                 running = true;
             }
         }
@@ -63,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
             mountViewModel.doBindService();
         }
         // TODO: investigate
-//        incomingMessenger = new Messenger(new OTAHandler(this));
+//        incomingMessenger = new Messenger(new OATHandler(this));
     }
 
     @Override

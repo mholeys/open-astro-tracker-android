@@ -11,6 +11,8 @@ public class MountMessages {
 
     public static final String LATITUDE = "Latitude";
     public static final String LONGITUDE = "Longitude";
+    public static final String ALTITUDE = "Altitude";
+    public static final String LST = "Lst";
 
     public static void refreshMountState(Messenger target) {
         Bundle b = new Bundle();
@@ -139,9 +141,14 @@ public class MountMessages {
         } catch (RemoteException e) {
         }
     }
-    public static void setLocation(Messenger target) {
+    public static void setLocation(Messenger target, float lat, float lon, int alt, int lst) {
         Bundle b = new Bundle();
         Message msg = Message.obtain(null, Mount.SET_LOCATION,0,0);
+        b.putFloat(LATITUDE, lat);
+        b.putFloat(LONGITUDE, lon);
+        b.putInt(ALTITUDE, alt);
+        b.putInt(LST, lst);
+        msg.setData(b);
         try {
             target.send(msg);
         } catch (RemoteException e) {

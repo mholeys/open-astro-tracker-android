@@ -11,9 +11,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 
-public class OTAComms extends Thread {
+public class OATComms extends Thread {
 
-    private static final String TAG = "OTAComms";
+    private static final String TAG = "OATComms";
     private DataInputStream in;
     private DataOutputStream out;
     private boolean running = false;
@@ -21,7 +21,7 @@ public class OTAComms extends Thread {
 
     ConcurrentLinkedQueue<CommandResponse> responseStack;
 
-    public OTAComms(InputStream in, OutputStream out) {
+    public OATComms(InputStream in, OutputStream out) {
         this.in = new DataInputStream(in);
         this.out = new DataOutputStream(out);
         responseStack = new ConcurrentLinkedQueue<>();
@@ -69,6 +69,9 @@ public class OTAComms extends Thread {
                 }
                 e.printStackTrace();
             }
+        }
+        if (disconnectListener != null) {
+            disconnectListener.disconnected();
         }
     }
 

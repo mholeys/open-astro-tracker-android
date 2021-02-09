@@ -5,13 +5,13 @@ import android.os.Parcelable;
 
 public class TelescopePosition implements Parcelable {
 
-    public static TelescopePosition Invalid = new TelescopePosition(-1, 0, OTAEpoch.JNOW);
+    public static TelescopePosition Invalid = new TelescopePosition(-1, 0, OATEpoch.JNOW);
     public double RightAscension;
     public double Declination;
-    public OTAEpoch epoch;
+    public OATEpoch epoch;
 
 
-    public TelescopePosition(double rightAscension, double declination, OTAEpoch epoch) {
+    public TelescopePosition(double rightAscension, double declination, OATEpoch epoch) {
         RightAscension = rightAscension;
         Declination = declination;
         this.epoch = epoch;
@@ -20,7 +20,7 @@ public class TelescopePosition implements Parcelable {
     protected TelescopePosition(Parcel in) {
         RightAscension = in.readDouble();
         Declination = in.readDouble();
-        epoch = OTAEpoch.valueOf(in.readString());
+        epoch = OATEpoch.valueOf(in.readString());
     }
 
     @Override

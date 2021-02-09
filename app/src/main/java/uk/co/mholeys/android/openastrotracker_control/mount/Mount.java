@@ -5,8 +5,6 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
-import androidx.lifecycle.MutableLiveData;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -16,13 +14,13 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
 
-import uk.co.mholeys.android.openastrotracker_control.comms.model.OTAEpoch;
+import uk.co.mholeys.android.openastrotracker_control.comms.model.OATEpoch;
 import uk.co.mholeys.android.openastrotracker_control.comms.model.TelescopePosition;
 
 public class Mount {
 
-    private static final String TAG = "OTA_MOUNT";
-    public OTAComms ota;
+    private static final String TAG = "OAT_MOUNT";
+    public OATComms oat;
     private Handler handler;
 
     public Mount(Socket socket, Handler handler) throws IOException {
@@ -34,9 +32,9 @@ public class Mount {
     }
 
     public Mount(InputStream in, OutputStream out, Handler handler) {
-        ota = new OTAComms(in, out);
+        oat = new OATComms(in, out);
         this.handler = handler;
-        ota.start();
+        oat.start();
     }
 
     // TODO: finish parsing data in callbacks!
@@ -71,6 +69,7 @@ public class Mount {
     public static final int SET_SPEED_FACTOR       = 27;
     public static final int GET_TRACKING_STATE     = 28;
     public static final int GET_SLEWING_STATE      = 29;
+    public static final int GET_MOUNT_VERSION      = 30;
 
 //    private static final Handler bluetoothHandler = new Handler() {
 //        @Override
@@ -86,7 +85,7 @@ public class Mount {
     // TODO: incomplete
     public void refreshMountState() {
         // Full response
-        ota.sendCommand(":GX#", new OTAComms.CommandResponse() {
+        oat.sendCommand(":GX#", new OATComms.CommandResponse() {
             @Override
             public void result(boolean success, String result) {
                 String[] _slewingStates = new String[]{
@@ -120,10 +119,10 @@ public class Mount {
     }
 
     public void close() {
-        ota.end();
+        oat.end();
     }
 
-    static class RACommandResponse implements OTAComms.CommandResponse {
+    static class RACommandResponse implements OATComms.CommandResponse {
         public String newRA = null;
         public String newRA() {
             return newRA;
@@ -142,12 +141,11 @@ public class Mount {
         // GET RA
         // Full response
         final RACommandResponse raCallback = new RACommandResponse();
-        ota.sendCommand(":GR#", raCallback);
-        OTAComms.CommandResponse decCallback = new OTAComms.CommandResponse() {
+        oat.sendCommand(":GR#", raCallback);
+        OATComms.CommandResponse decCallback = new OATComms.CommandResponse() {
             @Override
-            public void result(boolean success, String result) {
+            public void result(boolean success, String newDEC) {
                 String newRA = raCallback.newRA();
-                String newDEC = result;
                 if (!success || (newRA == null) || (newDEC == null)) {
                     Log.e(TAG, "getPositionDEC: failed");
                 } else {
@@ -156,7 +154,7 @@ public class Mount {
                         try {
                             dRa = tryParseRA(newRA);
                             dDec = tryParseDec(newDEC);
-                            TelescopePosition pos = new TelescopePosition(dRa, dDec, OTAEpoch.JNOW);
+                            TelescopePosition pos = new TelescopePosition(dRa, dDec, OATEpoch.JNOW);
                             Message writtenMsg = handler.obtainMessage(Mount.GET_POSITION, -0, -1, pos);
                             writtenMsg.sendToTarget();
                         } catch (Exception e) {
@@ -166,12 +164,12 @@ public class Mount {
             }
         };
         // Full response
-        ota.sendCommand(":GD#", decCallback);
+        oat.sendCommand(":GD#", decCallback);
     }
 
     public void getSiteLatitude() {
         // Full response
-        ota.sendCommand(":Gt#", new OTAComms.CommandResponse() {
+        oat.sendCommand(":Gt#", new OATComms.CommandResponse() {
             @Override
             public void result(boolean success, String result) {
                 if (success) {
@@ -188,7 +186,7 @@ public class Mount {
 
     public void getSiteLongitude() {
         // Full response
-        ota.sendCommand(":Gg#", new OTAComms.CommandResponse() {
+        oat.sendCommand(":Gg#", new OATComms.CommandResponse() {
             @Override
             public void result(boolean success, String result) {
                 if (success) {
@@ -212,7 +210,7 @@ public class Mount {
         int latMin = (int) ((Math.abs(latitude) - latInt) * 60.0f);
         // Numerical response treat as full
         String command = String.format(":St%c%02d*%02d#", sgn, latInt, latMin);
-        ota.sendCommand(command, new OTAComms.NumericCommandResponse() {
+        oat.sendCommand(command, new OATComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
                 if (success && result.equals("1")) {
@@ -234,7 +232,7 @@ public class Mount {
         // Numerical response treat as full
         String command = String.format(":Sg%03d*%02d#", lonInt, lonMin);
         final float finalLongitude = longitude;
-        ota.sendCommand(command, new OTAComms.NumericCommandResponse() {
+        oat.sendCommand(command, new OATComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
                 if (success && result.equals("1")) {
@@ -297,7 +295,7 @@ public class Mount {
     public void startMoving(String dir) {
         // Blind, no response
         String command = String.format(":M%s#", dir);
-        ota.sendBlindCommand(command);
+        oat.sendBlindCommand(command);
         Message writtenMsg = handler.obtainMessage(Mount.START_MOVING, 1, 0, null);
         writtenMsg.sendToTarget();
 //        MountState.setSlewing(true);
@@ -307,7 +305,7 @@ public class Mount {
     public void stopMoving(String dir) {
         // Blind, no response
         String command = String.format(":Q%s#", dir);
-        ota.sendBlindCommand(command);
+        oat.sendBlindCommand(command);
         Message writtenMsg = handler.obtainMessage(Mount.STOP_MOVING, 1, 0, null);
         writtenMsg.sendToTarget();
 //        --_moveState;
@@ -326,7 +324,7 @@ public class Mount {
         char sign = position.Declination < 0 ? '-' : '+';
         // Numerical response treat as full
         String command = String.format(":Sd%c%02d*%02d:%02d#", sign, deg, min, sec);
-        ota.sendCommand(command, new OTAComms.NumericCommandResponse() {
+        oat.sendCommand(command, new OATComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
                 if (!success || !result.equals("1")) {
@@ -343,7 +341,7 @@ public class Mount {
                 sec = (int) hms.s;
                 // Numerical response treat as full
                 String command2 = String.format(":Sr%02d:%02d:%02d#", hour, min, sec);
-                ota.sendCommand(command2, new OTAComms.NumericCommandResponse() {
+                oat.sendCommand(command2, new OATComms.NumericCommandResponse() {
                     @Override
                     public void result(boolean success2, String result2) {
                         if (!success2 || !result2.equals("1")) {
@@ -353,8 +351,7 @@ public class Mount {
                             return;
                         }
                         // Numerical response treat as full
-                        String command3 = String.format(":MS#");
-                        ota.sendCommand(command3, new OTAComms.NumericCommandResponse() {
+                        oat.sendCommand(":MS#", new OATComms.NumericCommandResponse() {
                             @Override
                             public void result(boolean success3, String result3) {
                                 // Result is 0 is returned if the telescope can complete the slew,
@@ -383,7 +380,7 @@ public class Mount {
         char sign = position.Declination < 0 ? '-' : '+';
         // Numerical response, treat as full
         String command = String.format(":Sd%c%02d*%02d:%02d#", sign, deg, min, sec);
-        ota.sendCommand(command, new OTAComms.NumericCommandResponse() {
+        oat.sendCommand(command, new OATComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
                 if (!success || result.equals("1")) {
@@ -399,7 +396,7 @@ public class Mount {
                 sec = (int) hms.s;
                 // Numerical response treat as full
                 String command2 = String.format(":Sr%02d:%02d:%02d#", hour, min, sec);
-                ota.sendCommand(command2, new OTAComms.NumericCommandResponse() {
+                oat.sendCommand(command2, new OATComms.NumericCommandResponse() {
                     @Override
                     public void result(boolean success2, String result2) {
                         if (!success2 || result2.equals("1")) {
@@ -408,7 +405,7 @@ public class Mount {
                             return;
                         }
                         // Blind, no response
-                        boolean success3 = ota.sendBlindCommand(":CM#");
+                        boolean success3 = oat.sendBlindCommand(":CM#");
                         Message writtenMsg = handler.obtainMessage(Mount.SYNC, success3 ? 1 : 0, 0, position);
                         writtenMsg.sendToTarget();
                     }
@@ -435,7 +432,7 @@ public class Mount {
         char dsign = position.Declination < 0 ? '-' : '+';
         // Numerical response, treat as full
         String command = String.format(":SY%c%02d*%02d:%02d.%02d:%02d:%02d#", dsign, ddeg, dmin, dsec, rhour, rmin, rsec);
-        ota.sendCommand(command, new OTAComms.NumericCommandResponse() {
+        oat.sendCommand(command, new OATComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
                 if (!success || result.equals("1")) {
@@ -450,14 +447,14 @@ public class Mount {
     }
 
     public void goHome() {
-        boolean success = ota.sendBlindCommand(":hP#");
+        boolean success = oat.sendBlindCommand(":hP#");
         Message writtenMsg = handler.obtainMessage(Mount.GO_HOME, success ? 1 : 0, 0, null);
         writtenMsg.sendToTarget();
     }
 
     public void setHome() {
         // Numerical response, treat as full
-        ota.sendCommand(":SHP#", new OTAComms.NumericCommandResponse() {
+        oat.sendCommand(":SHP#", new OATComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
                 Message writtenMsg = handler.obtainMessage(Mount.SET_HOME, success ? 1 : 0, 0, result);
@@ -470,7 +467,7 @@ public class Mount {
     public void getHA() {
         // Get HA?
         // Full response
-        ota.sendCommand(":XGH#", new OTAComms.CommandResponse() {
+        oat.sendCommand(":XGH#", new OATComms.CommandResponse() {
             @Override
             public void result(boolean success, String result) {
                 if (success && result.length() >= 6) {
@@ -489,7 +486,7 @@ public class Mount {
     public void setTracking(final boolean enabled) {
         final int b = enabled ? 1 : 0;
         // Numerical response, treat as full
-        ota.sendCommand(":MT" + b + "#", new OTAComms.NumericCommandResponse() {
+        oat.sendCommand(":MT" + b + "#", new OATComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
 //              MountState.setTracking(enabled);
@@ -503,45 +500,14 @@ public class Mount {
         });
     }
 
-    // TODO: finish and make public
-    private void setLocation(double lat, double lon, double altitudeInMeters, double lstInHours) {
+    public void setLocation(final double lat, final double lon, final double altitudeInMeters, double lstInHours) {
 
         // Longitude
         setSiteLongitude((float) lon);
         setSiteLatitude((float) lat);
         Log.e(TAG, "setLocation: Not finished will cause issues");
-
-//        if (lon < 0) {
-//            lon = 360 + lon;
-//        }
-//        int lonFront = (int) lon;
-//        int lonBack = (int) ((lon - lonFront) * 60);
-//        // Numerical response, treat as full
-//        String lonCmd = String.format(":Sg%03d*%02d#", lonFront, lonBack);
-//        ota.sendCommand(lonCmd, new OTAComms.NumericCommandResponse() {
-//            @Override
-//            public void result(boolean success, String result) {
-//
-//            }
-//        });
 //        // TODO: if (!status.success) return false;
-
-//
-//        // Latitude
-//        char latSign = lat > 0 ? '+' : '-';
-//        double absLat = Math.abs(lat);
-//        int latFront = (int) absLat;
-//        int latBack = (int) ((absLat - latFront) * 60.0);
-//        // Numerical response, treat as full
-//        String latCmd = String.format(":St%c%02d*%02d#", latSign, latFront, latBack);
-//        ota.sendCommand(latCmd, new OTAComms.NumericCommandResponse() {
-//            @Override
-//            public void result(boolean success, String result) {
-//
-//            }
-//        });
 //        // TODO: if (!status.success) return false;
-
 
         // GMT Offset
         Calendar c = Calendar.getInstance();
@@ -551,7 +517,7 @@ public class Mount {
         int offset = Math.abs(hours);
         // Numerical response, treat as full
         String tzCommand = String.format(":SG%c%02d#", offsetSign, offset);
-        ota.sendCommand(tzCommand, new OTAComms.NumericCommandResponse() {
+        oat.sendCommand(tzCommand, new OATComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
 
@@ -561,15 +527,15 @@ public class Mount {
 
 
         // Local Time and Date
-        int h = c.get(Calendar.HOUR_OF_DAY);
-        int m = c.get(Calendar.MINUTE);
-        int s = c.get(Calendar.SECOND);
-        int mm = c.get(Calendar.MONTH) + 1;
-        int dd = c.get(Calendar.DAY_OF_MONTH);
-        int yy = c.get(Calendar.YEAR);
+        final int h = c.get(Calendar.HOUR_OF_DAY);
+        final int m = c.get(Calendar.MINUTE);
+        final int s = c.get(Calendar.SECOND);
+        final int mm = c.get(Calendar.MONTH) + 1;
+        final int dd = c.get(Calendar.DAY_OF_MONTH);
+        final int yy = c.get(Calendar.YEAR);
         // Numerical response, treat as full
-        String timeCommand = String.format(":SL:%02d:%02d:%02d#", h, m, s);
-        ota.sendCommand(timeCommand, new OTAComms.NumericCommandResponse() {
+        String timeCommand = String.format(":SL%02d:%02d:%02d#", h, m, s);
+        oat.sendCommand(timeCommand, new OATComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
 
@@ -577,28 +543,112 @@ public class Mount {
         });
         // TODO: if (!status.success) return false;
         // Full response
-        String dateCommand = String.format(":SC:%02d/%02d/%02d#,#");
-        ota.sendCommand(dateCommand, new OTAComms.CommandResponse() {
+        String dateCommand = String.format(":SC%02d:%02d:%02d#", mm, dd, yy-2000);
+        oat.sendCommand(dateCommand, new OATComms.CommandResponse() {
             @Override
             public void result(boolean success, String result) {
 
             }
         });
-        // TODO: after all return status.success;
+
+
+        oat.sendCommand(":GVN#", new OATComms.CommandResponse() {
+            @Override
+            public void result(boolean success, String result) {
+                int version = parseVersion(result);
+
+                if (version < 10864) {
+                    // Set LST manually
+                    double decimalTime = (h + m / 60.0) + (s / 3600.0);
+                    double jd = calculateJulianDay(dd, mm, yy, decimalTime);
+                    double lst = calculateSiderealTimeLM(jd, lon);
+                    String command = ":SHL" + doubleToHMS(lst) + "#";
+                    Log.d(TAG, "Set LST: " + command);
+                    oat.sendCommand(command, new OATComms.NumericCommandResponse() {
+                        @Override
+                        public void result(boolean success, String result) {
+
+                        }
+                    });
+                }
+            }
+        });
+
+//        // Set LST
+//        float lst = AstroTimeUtil.calculateSiderealTime(c.getTime(), (float) lon);
+//        HMS lstHms = new HMS();
+//        floatToHMS(lst, lstHms);
+//        Log.e(TAG, String.format("New LST %02d:%02d", (int)lstHms.h, (int)lstHms.m));
+//        String lstCommand = String.format(":SHL%02d:%02d#", (int)lstHms.h, (int)lstHms.m);
+//        oat.sendCommand(lstCommand, new OATComms.NumericCommandResponse() {
+//            @Override
+//            public void result(boolean success, String result) {
+//
+//            }
+//        });
+
     }
+
+    // Mostly taken from OpenAstroTracker - OAT desktop
+    private double frac(double x) {
+        x = x - Math.floor(x);
+        if (x < 0) x = x + 1.0;
+        return x;
+    }
+
+    // Get the Julian Day as double
+    private double calculateJulianDay(int day, int month, int year, double u) {
+        if (month <= 2) {
+            month += 12;
+            year -= 1;
+        }
+        return Math.floor(365.25 * (year + 4716.0)) + Math.floor(30.6001 * (month + 1)) + day - 13.0 - 1524.5 + u / 24.0;
+    }
+
+    // Calculate Local Sidereal Time
+    // Reference https://greenbankobservatory.org/education/great-resources/lst-clock/
+    private double calculateSiderealTimeGM(double jd) {
+        double t_eph, ut, MJD0, MJD;
+
+        MJD = jd - 2400000.5;
+        MJD0 = Math.floor(MJD);
+        ut = (MJD - MJD0) * 24.0;
+        t_eph = (MJD0 - 51544.5) / 36525.0;
+        return 6.697374558 + 1.0027379093 * ut + (8640184.812866 + (0.093104 - 0.0000062 * t_eph) * t_eph) * t_eph / 3600.0;
+    }
+
+    private double calculateSiderealTimeLM(double jd, double longitude) {
+        double GMST = calculateSiderealTimeGM(jd);
+        double LMST = 24.0 * frac((GMST + longitude / 15.0) / 24.0);
+        return LMST;
+    }
+
+    // Convert decimal time to HH:MM:SS
+    private String doubleToHMS(double time)  {
+        return doubleToHMS(time, "", "", "");
+    }
+
+    private String doubleToHMS(double time, String delimiter1, String delimiter2, String delimiter3)  {
+        int h = (int) Math.floor(time);
+        int min = (int) Math.floor(60.0 * frac(time));
+        int secs = (int) Math.floor(60.0 * (60.0 * frac(time) - min));
+
+        return String.format("%02d%s%02d%s%02d%s", h, delimiter1, min, delimiter2, secs, delimiter3);
+    }
+
 
     // Other controls?
 
     public void park() {
         // No response
-        ota.sendBlindCommand(":hP#");
+        oat.sendBlindCommand(":hP#");
         Message writtenMsg = handler.obtainMessage(Mount.PARK, 1, 0, null);
         writtenMsg.sendToTarget();
     }
 
     public void unpark() {
         // Numerical response, treating as full
-        ota.sendCommand(":hU#", new OTAComms.NumericCommandResponse() {
+        oat.sendCommand(":hU#", new OATComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
                 Message writtenMsg = handler.obtainMessage(Mount.UNPARK, success ? 1 : 0, 0, result);
@@ -609,14 +659,14 @@ public class Mount {
 
     public void stopSlewing(char dir) {
         // No response
-        ota.sendBlindCommand(":Q"+dir+"#");
+        oat.sendBlindCommand(":Q"+dir+"#");
         Message writtenMsg = handler.obtainMessage(Mount.STOP_SLEWING, 1, 0, null);
         writtenMsg.sendToTarget();
     }
 
     public void toggleSlewing(char dir) {
         // No response
-        ota.sendBlindCommand(":M"+dir+"#");
+        oat.sendBlindCommand(":M"+dir+"#");
         Message writtenMsg = handler.obtainMessage(Mount.START_SLEWING, 1, 0, null);
         writtenMsg.sendToTarget();
     }
@@ -633,16 +683,16 @@ public class Mount {
 
     public void getRAStepsPerDegree() {
         // Full response
-        ota.sendCommand(":XGR#", new OTAComms.CommandResponse() {
+        oat.sendCommand(":XGR#", new OATComms.CommandResponse() {
             @Override
             public void result(boolean success, String result) {
-                int steps = -1;
+                float steps = -1;
                 try {
-                    steps = Integer.parseInt(result);
+                    steps = Float.parseFloat(result);
                 } catch (NumberFormatException e) {
                     Log.e(TAG, "getRaStepsPerDegree: Failed to parse ra steps " + result);
                 }
-                Message writtenMsg = handler.obtainMessage(Mount.GET_RA_STEPS_PER_DEG, success ? 1 : 0, steps, result);
+                Message writtenMsg = handler.obtainMessage(Mount.GET_RA_STEPS_PER_DEG, success ? 1 : 0, 0, steps);
                 writtenMsg.sendToTarget();
             }
         });
@@ -650,16 +700,16 @@ public class Mount {
 
     public void getDecStepsPerDegree() {
         // Full response
-        ota.sendCommand(":XGD#", new OTAComms.CommandResponse() {
+        oat.sendCommand(":XGD#", new OATComms.CommandResponse() {
             @Override
             public void result(boolean success, String result) {
-                int steps = -1;
+                float steps = -1;
                 try {
-                    steps = Integer.parseInt(result);
+                    steps = Float.parseFloat(result);
                 } catch (NumberFormatException e) {
                     Log.e(TAG, "getDecStepsPerDegree: Failed to parse dec steps " + result);
                 }
-                Message writtenMsg = handler.obtainMessage(Mount.GET_DEC_STEPS_PER_DEG, success ? 1 : 0, steps, result);
+                Message writtenMsg = handler.obtainMessage(Mount.GET_DEC_STEPS_PER_DEG, success ? 1 : 0, 0, steps);
                 writtenMsg.sendToTarget();
             }
         });
@@ -667,7 +717,7 @@ public class Mount {
 
     public void getSpeedFactor() {
         // Full response
-        ota.sendCommand(":XGS#", new OTAComms.CommandResponse() {
+        oat.sendCommand(":XGS#", new OATComms.CommandResponse() {
             @Override
             public void result(boolean success, String result) {
                 float speedFactor = -1;
@@ -693,19 +743,19 @@ public class Mount {
         }
 
         String command = String.format(":XSS%02d.%03d#", sfInt, sfDec);
-        ota.sendBlindCommand(command);
+        oat.sendBlindCommand(command);
         getSpeedFactor();
     }
 
     public void setRaStepsPerDeg(int steps) {
         // No response
-        ota.sendBlindCommand(":XSR" + steps + "#");
+        oat.sendBlindCommand(":XSR" + steps + "#");
         getRAStepsPerDegree();
     }
 
     public void setDecStepsPerDeg(int steps) {
         // No response
-        ota.sendBlindCommand(":XSD" + steps + "#");
+        oat.sendBlindCommand(":XSD" + steps + "#");
         getDecStepsPerDegree();
     }
 
@@ -716,7 +766,7 @@ public class Mount {
             Log.w(TAG, "moveSlightly: Not moving duration out of bounds");
             return;
         }
-        ota.sendCommand(String.format(":MG%c%04d#", direction, duration), new OTAComms.NumericCommandResponse() {
+        oat.sendCommand(String.format(":MG%c%04d#", direction, duration), new OATComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
 //                Log.d(TAG, "moveSlightlyResult: " + success + " " + result);
@@ -728,7 +778,7 @@ public class Mount {
 
     public void getTrackingState() {
         // Full response
-        ota.sendCommand(":GIT#", new OTAComms.CommandResponse() {
+        oat.sendCommand(":GIT#", new OATComms.CommandResponse() {
             @Override
             public void result(boolean success, String result) {
                 int state = 0;
@@ -743,7 +793,7 @@ public class Mount {
 
     public void getSlewingState() {
         // Full response
-        ota.sendCommand(":GIS#", new OTAComms.CommandResponse() {
+        oat.sendCommand(":GIS#", new OATComms.CommandResponse() {
             @Override
             public void result(boolean success, String result) {
                 int state = 0;
@@ -756,5 +806,29 @@ public class Mount {
         });
     }
 
+    public void getMountVersion() {
+        oat.sendCommand(":GVN#", new OATComms.CommandResponse() {
+            @Override
+            public void result(boolean success, String result) {
+                int firmwareVersion = parseVersion(result);
+                Message writtenMsg = handler.obtainMessage(Mount.GET_MOUNT_VERSION, success ? 1 : 0, firmwareVersion);
+                writtenMsg.sendToTarget();
+            }
+        });
+    }
+
+    private int parseVersion(String s) {
+        String[] version = s.substring(1).split("\\.");
+        Integer[] v = new Integer[version.length];
+        for (int i = 0 ; i < version.length; i++) {
+            try {
+                v[i] = Integer.parseInt(version[i]);
+            } catch (NumberFormatException e) {
+                v[i] = 0;
+                Log.e(TAG, "Failed to parse MountVersion " + i + " " + version[i]);
+            }
+        }
+        return v[0] * 10000 + v[1] * 100 + v[2];
+    }
 
 }

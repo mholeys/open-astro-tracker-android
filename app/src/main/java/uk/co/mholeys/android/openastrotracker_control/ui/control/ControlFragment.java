@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import uk.co.mholeys.android.openastrotracker_control.MountViewModel;
 import uk.co.mholeys.android.openastrotracker_control.R;
-import uk.co.mholeys.android.openastrotracker_control.comms.model.OTAEpoch;
+import uk.co.mholeys.android.openastrotracker_control.comms.model.OATEpoch;
 import uk.co.mholeys.android.openastrotracker_control.comms.model.TelescopePosition;
 import uk.co.mholeys.android.openastrotracker_control.mount.Mount;
 import uk.co.mholeys.android.openastrotracker_control.mount.MountMessages;
@@ -85,7 +85,7 @@ public class ControlFragment extends Fragment {
                 Mount.HMS polarisRa = new Mount.HMS(2, 58, 51);
                 Mount.HMS polarisDecNorth = new Mount.HMS(88, 42, 12);
                 Mount.HMS polarisDecSouth = new Mount.HMS(-88, 41, 12);
-                TelescopePosition polarisPos = new TelescopePosition(Mount.HMSToFloat(polarisRa), Mount.HMSToFloat(polarisDecNorth), OTAEpoch.JNOW);
+                TelescopePosition polarisPos = new TelescopePosition(Mount.HMSToFloat(polarisRa), Mount.HMSToFloat(polarisDecNorth), OATEpoch.JNOW);
                 MountMessages.slew(serviceMessenger, polarisPos);
                 // GoTo Polaris
                 //":Sr02:58:51#,n";
@@ -127,9 +127,9 @@ public class ControlFragment extends Fragment {
             // User has stated that polaris is now in the center of the screen
             if (isBound()) {
                 Mount.HMS polarisRa = new Mount.HMS(2, 58, 51);
-                Mount.HMS polarisDecNorth = new Mount.HMS(89, 21, 06);
-                Mount.HMS polarisDecSouth = new Mount.HMS(-89, 21, 06);
-                TelescopePosition polarisPos = new TelescopePosition(Mount.HMSToFloat(polarisRa), Mount.HMSToFloat(polarisDecNorth), OTAEpoch.JNOW);
+                Mount.HMS polarisDecNorth = new Mount.HMS(89, 21, 6);
+                Mount.HMS polarisDecSouth = new Mount.HMS(-89, 21, 6);
+                TelescopePosition polarisPos = new TelescopePosition(Mount.HMSToFloat(polarisRa), Mount.HMSToFloat(polarisDecNorth), OATEpoch.JNOW);
                 MountMessages.syncPolaris(serviceMessenger, polarisPos);
                 MountMessages.setTracking(serviceMessenger, true);
                 // Northern

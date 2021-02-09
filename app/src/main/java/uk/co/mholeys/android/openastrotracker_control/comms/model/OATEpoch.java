@@ -1,6 +1,6 @@
 package uk.co.mholeys.android.openastrotracker_control.comms.model;
 
-public enum OTAEpoch {
+public enum OATEpoch {
         J2000,
         JNOW
     }

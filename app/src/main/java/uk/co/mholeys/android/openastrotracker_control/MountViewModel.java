@@ -21,7 +21,6 @@ import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
-import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelStoreOwner;
 
@@ -59,11 +58,12 @@ public class MountViewModel extends AndroidViewModel implements ISearcherControl
     MutableLiveData<TrackingState> trackingState = new MutableLiveData<>(TrackingState.UNKNOWN);
     MutableLiveData<Float> siteLatitude = new MutableLiveData<>();
     MutableLiveData<Float> siteLongitude = new MutableLiveData<>();
-    MutableLiveData<Integer> raStepsPerDeg = new MutableLiveData<>();
-    MutableLiveData<Integer> decStepsPerDeg = new MutableLiveData<>();
+    MutableLiveData<Float> raStepsPerDeg = new MutableLiveData<>();
+    MutableLiveData<Float> decStepsPerDeg = new MutableLiveData<>();
     MutableLiveData<Float> speedFactor = new MutableLiveData<>();
     MutableLiveData<String> ha = new MutableLiveData<>();
     MutableLiveData<Boolean> slewingState = new MutableLiveData<>();
+    MutableLiveData<Integer> firmwareVersion = new MutableLiveData<>();
 
 
     private boolean shouldUnbind = false;
@@ -81,16 +81,16 @@ public class MountViewModel extends AndroidViewModel implements ISearcherControl
     }
 
     public void startBluetoothService(BluetoothDevice device) {
-        Intent intent = new Intent(getApplication(), BluetoothOTAService.class);
+        Intent intent = new Intent(getApplication(), BluetoothOATService.class);
         intent.putExtra("bluetooth-device", device);
 
         getApplication().startService(intent);
         doBindService();
-        incomingMessenger = new Messenger(new OTAHandler(this));
+        incomingMessenger = new Messenger(new OATHandler(this));
     }
 
     public void doBindService() {
-        Intent bindIntent = new Intent(getApplication(), BluetoothOTAService.class);
+        Intent bindIntent = new Intent(getApplication(), BluetoothOATService.class);
         if (getApplication().bindService(bindIntent, connection, Context.BIND_AUTO_CREATE)) {
             shouldUnbind = true;
         }
@@ -128,12 +128,12 @@ public class MountViewModel extends AndroidViewModel implements ISearcherControl
         }
     };
 
-    static class OTAHandler extends Handler {
+    static class OATHandler extends Handler {
 
-        private static final String TAG = "MvmOTAh";
+        private static final String TAG = "MvmOATh";
         private WeakReference<MountViewModel> viewModel;
 
-        public OTAHandler(MountViewModel viewModel) {
+        public OATHandler(MountViewModel viewModel) {
             this.viewModel  = new WeakReference<>(viewModel);
         }
 
@@ -142,24 +142,24 @@ public class MountViewModel extends AndroidViewModel implements ISearcherControl
             MountViewModel vm = this.viewModel.get();
             Object o = msg.obj;
             switch (msg.what) {
-                case BluetoothOTAService.DEVICE_CONNECTING:
+                case BluetoothOATService.DEVICE_CONNECTING:
 //                        Toast.makeText(MainActivity.this, "Connecting to " + msg.obj, Toast.LENGTH_SHORT).show();
                     vm.setConnectionState(MountViewModel.ConnectionState.CONNECTING);
                     break;
-                case BluetoothOTAService.DEVICE_CONNECTED:
+                case BluetoothOATService.DEVICE_CONNECTED:
                     // TODO: Toast.makeText(mActivity.get(), "Connected to " + msg.obj, Toast.LENGTH_SHORT).show();
                     vm.setConnectionState(MountViewModel.ConnectionState.CONNECTED);
                     break;
-                case BluetoothOTAService.DEVICE_DISCONNECTED:
+                case BluetoothOATService.DEVICE_DISCONNECTED:
                     Log.d(TAG, "handleMessage: Failed to connect msg from service");
                     // TODO: Toast.makeText(mActivity.get(), "Disconnected from " + msg.obj, Toast.LENGTH_SHORT).show();
                     vm.unbindAndChangeState(MountViewModel.ConnectionState.DISCONNECTED);
                     break;
-                case BluetoothOTAService.DEVICE_FAILED_DISCONNECT:
+                case BluetoothOATService.DEVICE_FAILED_DISCONNECT:
 //                        Toast.makeText(MainActivity.this, "Failed to disconnect from " + msg.obj, Toast.LENGTH_SHORT).show();
                     vm.unbindAndChangeState(MountViewModel.ConnectionState.UNKNOWN);
                     break;
-                case BluetoothOTAService.DEVICE_FAILED:
+                case BluetoothOATService.DEVICE_FAILED:
                     // TODO:Toast.makeText(mActivity.get(), "Failed to connect to " + msg.obj, Toast.LENGTH_SHORT).show();
                     vm.unbindAndChangeState(MountViewModel.ConnectionState.FAILED);
                     break;
@@ -237,10 +237,10 @@ public class MountViewModel extends AndroidViewModel implements ISearcherControl
                     vm.trackingState.postValue(TrackingState.UNPARKED);
                     break;
                 case Mount.GET_RA_STEPS_PER_DEG:
-                    vm.raStepsPerDeg.postValue(msg.arg2);
+                    vm.raStepsPerDeg.postValue((float) o);
                     break;
                 case Mount.GET_DEC_STEPS_PER_DEG:
-                    vm.decStepsPerDeg.postValue(msg.arg2);
+                    vm.decStepsPerDeg.postValue((float) o);
                     break;
                 case Mount.GET_SPEED_FACTOR:
                     vm.speedFactor.postValue((float) o);
@@ -259,6 +259,9 @@ public class MountViewModel extends AndroidViewModel implements ISearcherControl
                     break;
                 case Mount.GET_SLEWING_STATE:
                     vm.slewingState.setValue(msg.arg2 == 1);
+                    break;
+                case Mount.GET_MOUNT_VERSION:
+                    vm.firmwareVersion.setValue(msg.arg2);
                     break;
                 default:
                     break;
@@ -354,7 +357,7 @@ public class MountViewModel extends AndroidViewModel implements ISearcherControl
                     if (!bluetoothSearch.hasBluetooth()) return;
                     Log.d(TAG, "onClick: attempting to connect");
                     if (device.getType().equalsIgnoreCase("bluetooth")) {
-                        // Start service to connect to OTA
+                        // Start service to connect to OAT
                         startBluetoothService((BluetoothDevice) device.getDevice());
 //                        bluetoothSearch.connectClient((BluetoothDevice) device.getDevice());
                     } else {
@@ -383,7 +386,7 @@ public class MountViewModel extends AndroidViewModel implements ISearcherControl
     public void disconnect(Activity activity) {
         switch (connectionType) {
             case BLUETOOTH:
-                Intent intent = new Intent(getApplication(), BluetoothOTAService.class);
+                Intent intent = new Intent(getApplication(), BluetoothOATService.class);
                 getApplication().stopService(intent);
                 doUnbindService();
                 unregisterReceivers(activity);
@@ -402,7 +405,7 @@ public class MountViewModel extends AndroidViewModel implements ISearcherControl
     public void discover() {
         switch (connectionType) {
             case BLUETOOTH:
-                Intent intent = new Intent(getApplication(), BluetoothOTAService.class);
+                Intent intent = new Intent(getApplication(), BluetoothOATService.class);
                 getApplication().stopService(intent);
                 bluetoothSearch.discoverDevices();
                 break;
@@ -465,11 +468,11 @@ public class MountViewModel extends AndroidViewModel implements ISearcherControl
         return siteLongitude;
     }
 
-    public LiveData<Integer> getRaStepsPerDeg() {
+    public LiveData<Float> getRaStepsPerDeg() {
         return raStepsPerDeg;
     }
 
-    public LiveData<Integer> getDecStepsPerDeg() {
+    public LiveData<Float> getDecStepsPerDeg() {
         return decStepsPerDeg;
     }
 
@@ -483,6 +486,10 @@ public class MountViewModel extends AndroidViewModel implements ISearcherControl
 
     public LiveData<Boolean> getSlewingState() {
         return slewingState;
+    }
+
+    public LiveData<Integer> getFirmwareVersion() {
+        return firmwareVersion;
     }
 
 }

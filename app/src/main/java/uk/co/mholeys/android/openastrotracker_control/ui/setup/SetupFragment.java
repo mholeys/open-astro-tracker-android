@@ -47,8 +47,8 @@ public class SetupFragment extends Fragment {
                 float lat = Float.parseFloat(latS.toString());
                 float lon = Float.parseFloat(lonS.toString());
 
-                MountMessages.setSiteLatitude(serviceMessenger, lat);
-                MountMessages.setSiteLongitude(serviceMessenger, lon);
+                MountMessages.setLocation(serviceMessenger, lat, lon, 0, 0);
+
                 MountMessages.getSiteLatitude(serviceMessenger);
                 MountMessages.getSiteLongitude(serviceMessenger);
             } catch (NumberFormatException e) {
@@ -150,15 +150,15 @@ public class SetupFragment extends Fragment {
                 lastSpeedFactor = speedFactor;
             }
         });
-        mountViewModel.getRaStepsPerDeg().observe(getViewLifecycleOwner(), new Observer<Integer>() {
+        mountViewModel.getRaStepsPerDeg().observe(getViewLifecycleOwner(), new Observer<Float>() {
             @Override
-            public void onChanged(Integer steps) {
+            public void onChanged(Float steps) {
                 mRaStepsText.setText(String.valueOf(steps));
             }
         });
-        mountViewModel.getDecStepsPerDeg().observe(getViewLifecycleOwner(), new Observer<Integer>() {
+        mountViewModel.getDecStepsPerDeg().observe(getViewLifecycleOwner(), new Observer<Float>() {
             @Override
-            public void onChanged(Integer steps) {
+            public void onChanged(Float steps) {
                 mDecStepsText.setText(String.valueOf(steps));
             }
         });

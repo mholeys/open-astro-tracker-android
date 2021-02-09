@@ -7,12 +7,12 @@ import androidx.lifecycle.MutableLiveData;
 
 import uk.co.mholeys.android.openastrotracker_control.comms.model.TelescopePosition;
 
-public class OTAState implements Parcelable  {
+public class OATState implements Parcelable  {
 
-    private static OTAState instance;
-    public static OTAState getInstance() {
+    private static OATState instance;
+    public static OATState getInstance() {
         if (instance == null) {
-            instance = new OTAState();
+            instance = new OATState();
         }
         return instance;
     }
@@ -23,11 +23,11 @@ public class OTAState implements Parcelable  {
     public MutableLiveData<Boolean> slewingRA = new MutableLiveData<>();
     public MutableLiveData<Boolean> slewingDEC = new MutableLiveData<>();
 
-    public OTAState() {
+    public OATState() {
 
     }
 
-    protected OTAState(Parcel in) {
+    protected OATState(Parcel in) {
         instance = this;
         // Has position stored
         if (in.readInt() == 1) {
@@ -38,15 +38,15 @@ public class OTAState implements Parcelable  {
         instance = this;
     }
 
-    public static final Creator<OTAState> CREATOR = new Creator<OTAState>() {
+    public static final Creator<OATState> CREATOR = new Creator<OATState>() {
         @Override
-        public OTAState createFromParcel(Parcel in) {
-            return new OTAState(in);
+        public OATState createFromParcel(Parcel in) {
+            return new OATState(in);
         }
 
         @Override
-        public OTAState[] newArray(int size) {
-            return new OTAState[size];
+        public OATState[] newArray(int size) {
+            return new OATState[size];
         }
     };
 
