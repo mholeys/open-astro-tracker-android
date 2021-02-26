@@ -30,6 +30,7 @@ public class OATComms extends Thread {
 
     public void run() {
         StringBuilder sb = new StringBuilder(30);
+        StringBuilder sb2 = new StringBuilder(30);
         while (running) {
             try {
                 if (in.available() == 0) {
@@ -42,22 +43,18 @@ public class OATComms extends Thread {
                     sb.append((char)in.readByte());
                 } else {
                     // String ended by #
-                    int r = -1;
-                    while ((r = in.readByte()) != -1) {
-                        char c = (char) r;
-                        if (c == '#') {
-//                            Log.v(TAG, "run: End of answer '#'");
-                            break;
-                        } else {
-//                            Log.v(TAG, "run: got '" + c + "'");
-                            sb.append(c);
-                        }
-                    }
+                    readHashIntoSB(sb);
                 }
 
-//                Log.v(TAG, "got " + sb.toString());
-                cr.result(true, sb.toString());
+                if (cr instanceof DoubleCommandResponse) {
+                    readHashIntoSB(sb2);
+//                    Log.v(TAG, "got second\" " + sb2.toString() + "\"");
+                    ((DoubleCommandResponse) cr).secondResult(sb2.toString());
+                    sb2.delete(0, sb2.length());
+                }
 
+//                Log.v(TAG, "got\" " + sb.toString() + "\"");
+                cr.result(true, sb.toString());
                 sb.delete(0, sb.length());
             } catch (IOException e) {
                 if (e.getMessage().equals("socket closed")) {
@@ -72,6 +69,25 @@ public class OATComms extends Thread {
         }
         if (disconnectListener != null) {
             disconnectListener.disconnected();
+        }
+    }
+
+    /***
+     * Reads from the stream uptill the '#' char, and appends to the given string builder
+     * @param sb Output location for the result
+     * @throws IOException (InputStream.readByte())
+     */
+    private void readHashIntoSB(StringBuilder sb) throws IOException {
+        int r = -1;
+        while ((r = in.readByte()) != -1) {
+            char c = (char) r;
+            if (c == '#') {
+//                Log.v(TAG, "run: End of answer '#'");
+                break;
+            } else {
+//                Log.v(TAG, "run: got '" + c + "'");
+                sb.append(c);
+            }
         }
     }
 
@@ -105,10 +121,18 @@ public class OATComms extends Thread {
     }
 
 
+
+
     public interface CommandResponse {
         public void result(boolean success, String result);
     }
     public interface NumericCommandResponse extends CommandResponse {}
+    /**
+     * Useful for skipping extra lines like "1Updating Planetary Data#                              #"
+     */
+    public interface DoubleCommandResponse extends CommandResponse {
+        public void secondResult( String result);
+    }
     public interface DisconnectListener {
         public void disconnected();
     }

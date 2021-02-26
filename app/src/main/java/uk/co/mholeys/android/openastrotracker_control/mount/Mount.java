@@ -534,6 +534,7 @@ public class Mount {
         final int dd = c.get(Calendar.DAY_OF_MONTH);
         final int yy = c.get(Calendar.YEAR);
         // Numerical response, treat as full
+        // Set local time
         String timeCommand = String.format(":SL%02d:%02d:%02d#", h, m, s);
         oat.sendCommand(timeCommand, new OATComms.NumericCommandResponse() {
             @Override
@@ -543,8 +544,12 @@ public class Mount {
         });
         // TODO: if (!status.success) return false;
         // Full response
+        // Set local date
         String dateCommand = String.format(":SC%02d:%02d:%02d#", mm, dd, yy-2000);
-        oat.sendCommand(dateCommand, new OATComms.CommandResponse() {
+        oat.sendCommand(dateCommand, new OATComms.DoubleCommandResponse() {
+            @Override
+            public void secondResult(String result) { /* Ignore extra padding */ }
+
             @Override
             public void result(boolean success, String result) {
 
@@ -552,11 +557,11 @@ public class Mount {
         });
 
 
+        // Get firmware version, as only 1.8.64+ calculates LocalSiderealTime for us
         oat.sendCommand(":GVN#", new OATComms.CommandResponse() {
             @Override
             public void result(boolean success, String result) {
                 int version = parseVersion(result);
-
                 if (version < 10864) {
                     // Set LST manually
                     double decimalTime = (h + m / 60.0) + (s / 3600.0);
@@ -595,7 +600,7 @@ public class Mount {
         if (x < 0) x = x + 1.0;
         return x;
     }
-
+    // Mostly taken from OpenAstroTracker - OAT desktop
     // Get the Julian Day as double
     private double calculateJulianDay(int day, int month, int year, double u) {
         if (month <= 2) {
@@ -604,7 +609,7 @@ public class Mount {
         }
         return Math.floor(365.25 * (year + 4716.0)) + Math.floor(30.6001 * (month + 1)) + day - 13.0 - 1524.5 + u / 24.0;
     }
-
+    // Mostly taken from OpenAstroTracker - OAT desktop
     // Calculate Local Sidereal Time
     // Reference https://greenbankobservatory.org/education/great-resources/lst-clock/
     private double calculateSiderealTimeGM(double jd) {
@@ -616,7 +621,7 @@ public class Mount {
         t_eph = (MJD0 - 51544.5) / 36525.0;
         return 6.697374558 + 1.0027379093 * ut + (8640184.812866 + (0.093104 - 0.0000062 * t_eph) * t_eph) * t_eph / 3600.0;
     }
-
+    // Mostly taken from OpenAstroTracker - OAT desktop
     private double calculateSiderealTimeLM(double jd, double longitude) {
         double GMST = calculateSiderealTimeGM(jd);
         double LMST = 24.0 * frac((GMST + longitude / 15.0) / 24.0);
