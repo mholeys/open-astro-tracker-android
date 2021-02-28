@@ -385,11 +385,11 @@ public class BluetoothOATService extends Service {
                     break;
                 case Mount.SET_SITE_LATITUDE:
                     if (mount == null) {return;}
-                    mount.setSiteLatitude(b.getFloat(MountMessages.LATITUDE));
+                    mount.setSiteLatitude(b.getDouble(MountMessages.LATITUDE));
                     break;
                 case Mount.SET_SITE_LONGITUDE:
                     if (mount == null) {return;}
-                    mount.setSiteLongitude(b.getFloat(MountMessages.LONGITUDE));
+                    mount.setSiteLongitude(b.getDouble(MountMessages.LONGITUDE));
                     break;
                 case Mount.START_MOVING:
                     if (mount == null) {return;}

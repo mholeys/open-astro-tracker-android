@@ -84,8 +84,8 @@ public class ControlFragment extends Fragment {
                 // TODO: north/south hemi
                 Mount.HMS polarisRa = new Mount.HMS(2, 58, 51);
                 Mount.HMS polarisDecNorth = new Mount.HMS(88, 42, 12);
-                Mount.HMS polarisDecSouth = new Mount.HMS(-88, 41, 12);
-                TelescopePosition polarisPos = new TelescopePosition(Mount.HMSToFloat(polarisRa), Mount.HMSToFloat(polarisDecNorth), OATEpoch.JNOW);
+                Mount.HMS polarisDecSouth = new Mount.HMS(-88, 42, 12);
+                TelescopePosition polarisPos = new TelescopePosition(polarisRa, polarisDecNorth, OATEpoch.JNOW);
                 MountMessages.slew(serviceMessenger, polarisPos);
                 // GoTo Polaris
                 //":Sr02:58:51#,n";
@@ -129,7 +129,7 @@ public class ControlFragment extends Fragment {
                 Mount.HMS polarisRa = new Mount.HMS(2, 58, 51);
                 Mount.HMS polarisDecNorth = new Mount.HMS(89, 21, 6);
                 Mount.HMS polarisDecSouth = new Mount.HMS(-89, 21, 6);
-                TelescopePosition polarisPos = new TelescopePosition(Mount.HMSToFloat(polarisRa), Mount.HMSToFloat(polarisDecNorth), OATEpoch.JNOW);
+                TelescopePosition polarisPos = new TelescopePosition(polarisRa, polarisDecNorth, OATEpoch.JNOW);
                 MountMessages.syncPolaris(serviceMessenger, polarisPos);
                 MountMessages.setTracking(serviceMessenger, true);
                 // Northern
@@ -360,10 +360,8 @@ public class ControlFragment extends Fragment {
         mountViewModel.getCurrentPosition().observe(getViewLifecycleOwner(), new Observer<TelescopePosition>() {
             @Override
             public void onChanged(TelescopePosition telescopePosition) {
-                Mount.HMS ra = new Mount.HMS();
-                Mount.HMS dec = new Mount.HMS();
-                Mount.floatToHMS(telescopePosition.RightAscension, ra);
-                Mount.floatToHMS(telescopePosition.Declination, dec);
+                Mount.HMS ra = telescopePosition.RightAscension();
+                Mount.HMS dec = telescopePosition.Declination();
                 mCurrentDECText.setText(String.format("%02d : %02d : %02d", (int)dec.h, (int)dec.m, (int)dec.s));
                 mCurrentRAText.setText(String.format("%02d : %02d : %02d", (int)ra.h, (int)ra.m, (int)ra.s));
             }

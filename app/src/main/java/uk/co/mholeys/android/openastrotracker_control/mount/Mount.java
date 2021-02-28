@@ -150,7 +150,7 @@ public class Mount {
                     Log.e(TAG, "getPositionDEC: failed");
                 } else {
                     // Parse RA/DEC
-                        double dRa, dDec;
+                        HMS dRa, dDec;
                         try {
                             dRa = tryParseRA(newRA);
                             dDec = tryParseDec(newDEC);
@@ -173,7 +173,7 @@ public class Mount {
             @Override
             public void result(boolean success, String result) {
                 if (success) {
-                    float lat = (float) tryParseDec(result);
+                    double lat = tryParseDec(result).toDouble();
                     Message writtenMsg = handler.obtainMessage(Mount.GET_SITE_LATITUDE, success ? 1 : 0, 0, lat);
                     writtenMsg.sendToTarget();
                 } else {
@@ -190,11 +190,11 @@ public class Mount {
             @Override
             public void result(boolean success, String result) {
                 if (success) {
-                    double lon = tryParseDec(result);
+                    double lon = tryParseDec(result).toDouble();
                     if (lon > 180) {
                         lon -= 360;
                     }
-                    Message writtenMsg = handler.obtainMessage(Mount.GET_SITE_LONGITUDE, success ? 1 : 0, 0, (float) lon);
+                    Message writtenMsg = handler.obtainMessage(Mount.GET_SITE_LONGITUDE, success ? 1 : 0, 0, lon);
                     writtenMsg.sendToTarget();
                 } else {
                     // 0
@@ -204,7 +204,7 @@ public class Mount {
         });
     }
 
-    public void setSiteLatitude(final float latitude) {
+    public void setSiteLatitude(final double latitude) {
         char sgn = latitude < 0 ? '-' : '+';
         final int latInt = (int) Math.abs(latitude);
         int latMin = (int) ((Math.abs(latitude) - latInt) * 60.0f);
@@ -225,13 +225,13 @@ public class Mount {
         });
     }
 
-    public void setSiteLongitude(float longitude) {
+    public void setSiteLongitude(double longitude) {
         longitude = longitude < 0 ? longitude + 360 : longitude;
         int lonInt = (int) longitude;
         int lonMin = (int) ((longitude - lonInt) * 60.0f);
         // Numerical response treat as full
         String command = String.format(":Sg%03d*%02d#", lonInt, lonMin);
-        final float finalLongitude = longitude;
+        final double finalLongitude = longitude;
         oat.sendCommand(command, new OATComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
@@ -247,48 +247,58 @@ public class Mount {
     }
 
     public static class HMS {
-        public double h, m, s;
+        public static final HMS INVALID = new HMS(-1, 0, 0);
+        public int h, m, s;
 
         public HMS() {}
-        public HMS(double h, double m, double s) {
+        public HMS(int h, int m, int s) {
             this.h = h;
             this.m = m;
             this.s = s;
         }
+
+        public int uh() {
+            return Math.abs(h);
+        }
+
+        public double toDouble() {
+            return h + m / 60d + s / 60d;
+        }
+
     }
 
-    public static void floatToHMS(double val, HMS hms) {
-        hms.h = (int) Math.floor(val);
-        val = (val - hms.h) * 60;
-        hms.m = (int) Math.floor(val);
-        val = (val - hms.m) * 60;
-        hms.s = (int) Math.round(val);
-    }
+//    public static void floatToHMS(double val, HMS hms) {
+//        hms.h = (int) Math.floor(val);
+//        val = (val - hms.h) * 60;
+//        hms.m = (int) Math.floor(val);
+//        val = (val - hms.m) * 60;
+//        hms.s = (int) Math.round(val);
+//    }
+//
+//    public static double HMSToFloat(HMS hms) {
+//        return hms.h + hms.m / 60d + hms.s / 60d;
+//    }
 
-    public static double HMSToFloat(HMS hms) {
-        return hms.h + hms.m / 60d + hms.s / 60d;
-    }
-
-    public static double tryParseRA(String ra) {
+    public static HMS tryParseRA(String ra) {
         String[] parts = ra.split(":");
         try {
-            return Integer.parseInt(parts[0]) + Integer.parseInt(parts[1]) / 60.0 + Integer.parseInt(parts[2]) / 3600.0;
+            return new HMS(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
         } catch (Exception e) {
-            return -1d;
+            return HMS.INVALID;
         }
     }
 
-    public static double tryParseDec(String dec) {
+    public static HMS tryParseDec(String dec) {
         String[] parts = dec.split("\\*|\'");
         try {
-            double dDec = Integer.parseInt(parts[0]) + Integer.parseInt(parts[1]) / 60.0;
+            HMS dDec = new HMS(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]), 0);
             if (parts.length > 2) {
-                dDec += Integer.parseInt(parts[2]) / 3600.0;
+                dDec.s = Integer.parseInt(parts[2]);
             }
 
             return dDec;
         } catch (Exception e) {
-            return -1d;
+            return HMS.INVALID;
         }
     }
 
@@ -315,15 +325,10 @@ public class Mount {
     }
 
     public void slew(final TelescopePosition position) {
-        int deg, hour, min, sec;
-        final HMS hms = new HMS();
-        floatToHMS(Math.abs(position.Declination), hms);
-        deg = (int) hms.h;
-        min = (int) hms.m;
-        sec = (int) hms.s;
-        char sign = position.Declination < 0 ? '-' : '+';
+        final HMS d = position.Declination();
+        char sign = d.h < 0 ? '-' : '+';
         // Numerical response treat as full
-        String command = String.format(":Sd%c%02d*%02d:%02d#", sign, deg, min, sec);
+        String command = String.format(":Sd%c%02d*%02d:%02d#", sign, d.uh(), d.m, d.s);
         oat.sendCommand(command, new OATComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
@@ -334,13 +339,9 @@ public class Mount {
                     return;
                 }
 
-                int hour, min, sec;
-                floatToHMS(Math.abs(position.RightAscension), hms);
-                hour = (int) hms.h;
-                min = (int) hms.m;
-                sec = (int) hms.s;
+                HMS r = position.RightAscension();
                 // Numerical response treat as full
-                String command2 = String.format(":Sr%02d:%02d:%02d#", hour, min, sec);
+                String command2 = String.format(":Sr%02d:%02d:%02d#", r.uh(), r.m, r.s);
                 oat.sendCommand(command2, new OATComms.NumericCommandResponse() {
                     @Override
                     public void result(boolean success2, String result2) {
@@ -371,15 +372,11 @@ public class Mount {
     }
 
     public void sync(final TelescopePosition position) {
-        int deg, hour, min, sec;
-        HMS hms = new HMS();
-        floatToHMS(Math.abs(position.Declination), hms);
-        deg = (int) hms.h;
-        min = (int) hms.m;
-        sec = (int) hms.s;
-        char sign = position.Declination < 0 ? '-' : '+';
+        HMS d = position.Declination();
+
+        char sign = d.h < 0 ? '-' : '+';
         // Numerical response, treat as full
-        String command = String.format(":Sd%c%02d*%02d:%02d#", sign, deg, min, sec);
+        String command = String.format(":Sd%c%02d*%02d:%02d#", sign, d.uh(), d.m, d.s);
         oat.sendCommand(command, new OATComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
@@ -388,14 +385,9 @@ public class Mount {
                     writtenMsg.sendToTarget();
                     return;
                 }
-                HMS hms = new HMS();
-                floatToHMS(Math.abs(position.RightAscension), hms);
-                int hour, min, sec;
-                hour = (int) hms.h;
-                min = (int) hms.m;
-                sec = (int) hms.s;
+                HMS r = position.RightAscension();
                 // Numerical response treat as full
-                String command2 = String.format(":Sr%02d:%02d:%02d#", hour, min, sec);
+                String command2 = String.format(":Sr%02d:%02d:%02d#", r.uh(), r.m, r.s);
                 oat.sendCommand(command2, new OATComms.NumericCommandResponse() {
                     @Override
                     public void result(boolean success2, String result2) {
@@ -416,22 +408,11 @@ public class Mount {
     }
 
     public void syncPolaris(final TelescopePosition position) {
-        int ddeg, dmin, dsec;
-        int rhour, rmin, rsec;
-        HMS hms = new HMS();
-        floatToHMS(Math.abs(position.Declination), hms);
-        ddeg = (int) hms.h;
-        dmin = (int) hms.m;
-        dsec = (int) hms.s;
-
-        floatToHMS(Math.abs(position.RightAscension), hms);
-        rhour = (int) hms.h;
-        rmin = (int) hms.m;
-        rsec = (int) hms.s;
-
-        char dsign = position.Declination < 0 ? '-' : '+';
+        HMS d = position.Declination();
+        HMS r = position.RightAscension();
+        char dsign = d.h < 0 ? '-' : '+';
         // Numerical response, treat as full
-        String command = String.format(":SY%c%02d*%02d:%02d.%02d:%02d:%02d#", dsign, ddeg, dmin, dsec, rhour, rmin, rsec);
+        String command = String.format(":SY%c%02d*%02d:%02d.%02d:%02d:%02d#", dsign, d.uh(), d.m, d.s, r.h, r.m, r.s);
         oat.sendCommand(command, new OATComms.NumericCommandResponse() {
             @Override
             public void result(boolean success, String result) {
@@ -503,8 +484,8 @@ public class Mount {
     public void setLocation(final double lat, final double lon, final double altitudeInMeters, double lstInHours) {
 
         // Longitude
-        setSiteLongitude((float) lon);
-        setSiteLatitude((float) lat);
+        setSiteLongitude((double) lon);
+        setSiteLatitude((double) lat);
         Log.e(TAG, "setLocation: Not finished will cause issues");
 //        // TODO: if (!status.success) return false;
 //        // TODO: if (!status.success) return false;
@@ -512,9 +493,10 @@ public class Mount {
         // GMT Offset
         Calendar c = Calendar.getInstance();
         TimeZone tz = c.getTimeZone();
-        int hours = (tz.getDSTSavings() + tz.getRawOffset()) / 3600000;
+        int hours = tz.getOffset(c.getTime().getTime());
         char offsetSign = hours > 0 ? '+' : '-';
         int offset = Math.abs(hours);
+        Log.d(TAG, "setLocation Timezone: " + offsetSign + offset + " hours");
         // Numerical response, treat as full
         String tzCommand = String.format(":SG%c%02d#", offsetSign, offset);
         oat.sendCommand(tzCommand, new OATComms.NumericCommandResponse() {
@@ -533,6 +515,7 @@ public class Mount {
         final int mm = c.get(Calendar.MONTH) + 1;
         final int dd = c.get(Calendar.DAY_OF_MONTH);
         final int yy = c.get(Calendar.YEAR);
+        Log.v(TAG, "settingTime: " + c.toString());
         // Numerical response, treat as full
         // Set local time
         String timeCommand = String.format(":SL%02d:%02d:%02d#", h, m, s);

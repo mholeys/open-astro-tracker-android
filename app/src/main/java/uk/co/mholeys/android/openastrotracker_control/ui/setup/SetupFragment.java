@@ -38,7 +38,8 @@ public class SetupFragment extends Fragment {
     private Button mSpeedFactorButton;
     private Button mManualLocationButton;
     private Button mAutoLocationButton;
-    private float lastLat, lastLon, lastSpeedFactor;
+    private Double lastLat, lastLon;
+    private Float lastSpeedFactor;
 
     private EnterLatLonDialogFragment.Listener manualLocationListener = new EnterLatLonDialogFragment.Listener() {
         @Override
@@ -129,16 +130,16 @@ public class SetupFragment extends Fragment {
         mountViewModel = MountViewModel.getInstance(this);
         this.serviceMessenger = mountViewModel.getMessenger();
 
-        mountViewModel.getSiteLatitude().observe(getViewLifecycleOwner(), new Observer<Float>() {
+        mountViewModel.getSiteLatitude().observe(getViewLifecycleOwner(), new Observer<Double>() {
             @Override
-            public void onChanged(Float latitude) {
+            public void onChanged(Double latitude) {
                 mLatitudeText.setText(String.valueOf(latitude));
                 lastLat = latitude;
             }
         });
-        mountViewModel.getSiteLongitude().observe(getViewLifecycleOwner(), new Observer<Float>() {
+        mountViewModel.getSiteLongitude().observe(getViewLifecycleOwner(), new Observer<Double>() {
             @Override
-            public void onChanged(Float longitude) {
+            public void onChanged(Double longitude) {
                 mLongitudeText.setText(String.valueOf(longitude));
                 lastLon = longitude;
             }

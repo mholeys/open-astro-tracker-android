@@ -56,8 +56,8 @@ public class MountViewModel extends AndroidViewModel implements ISearcherControl
 
     public enum TrackingState { TRACKING, NOT_TRACKING, PARKED, UNPARKED, UNKNOWN }
     MutableLiveData<TrackingState> trackingState = new MutableLiveData<>(TrackingState.UNKNOWN);
-    MutableLiveData<Float> siteLatitude = new MutableLiveData<>();
-    MutableLiveData<Float> siteLongitude = new MutableLiveData<>();
+    MutableLiveData<Double> siteLatitude = new MutableLiveData<>();
+    MutableLiveData<Double> siteLongitude = new MutableLiveData<>();
     MutableLiveData<Float> raStepsPerDeg = new MutableLiveData<>();
     MutableLiveData<Float> decStepsPerDeg = new MutableLiveData<>();
     MutableLiveData<Float> speedFactor = new MutableLiveData<>();
@@ -175,11 +175,11 @@ public class MountViewModel extends AndroidViewModel implements ISearcherControl
                     break;
                 case Mount.GET_SITE_LATITUDE:
                 case Mount.SET_SITE_LATITUDE:
-                    vm.siteLatitude.postValue((float) o);
+                    vm.siteLatitude.postValue((double) o);
                     break;
                 case Mount.SET_SITE_LONGITUDE:
                 case Mount.GET_SITE_LONGITUDE:
-                    vm.siteLongitude.postValue((float) o);
+                    vm.siteLongitude.postValue((double) o);
                     break;
                 case Mount.START_MOVING:
                 case Mount.STOP_SLEWING:
@@ -460,11 +460,11 @@ public class MountViewModel extends AndroidViewModel implements ISearcherControl
         return trackingState;
     }
 
-    public LiveData<Float> getSiteLatitude() {
+    public LiveData<Double> getSiteLatitude() {
         return siteLatitude;
     }
 
-    public LiveData<Float> getSiteLongitude() {
+    public LiveData<Double> getSiteLongitude() {
         return siteLongitude;
     }
 

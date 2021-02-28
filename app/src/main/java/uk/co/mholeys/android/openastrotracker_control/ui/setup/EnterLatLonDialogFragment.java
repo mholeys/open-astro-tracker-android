@@ -17,10 +17,10 @@ public class EnterLatLonDialogFragment extends DialogFragment {
     private Listener listener;
     private EditText mLatText;
     private EditText mLonText;
-    private float lastLat;
-    private float lastLon;
+    private double lastLat;
+    private double lastLon;
 
-    public EnterLatLonDialogFragment(float lastLat, float lastLon) {
+    public EnterLatLonDialogFragment(double lastLat, double lastLon) {
         this.lastLat = lastLat;
         this.lastLon = lastLon;
     }
